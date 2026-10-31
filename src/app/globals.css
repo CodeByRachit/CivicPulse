@@ -55,3 +55,15 @@
   transform: translateY(-2px);
   box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.08);
 }
+
+/* Leaflet Tile & Geometry Rules */
+.leaflet-pane img {
+  max-width: none !important;
+  max-height: none !important;
+}
+
+.leaflet-container {
+  font-family: inherit;
+  outline: none;
+}
+

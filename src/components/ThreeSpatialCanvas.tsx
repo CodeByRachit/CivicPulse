@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import type { GrievanceRecord } from '@/types/grievance';
 import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type * as LeafletType from 'leaflet';
-import { Globe, MapPin, ZoomIn, RotateCcw, Satellite } from 'lucide-react';
+import { Globe, MapPin, ZoomIn, RotateCcw, Satellite, ArrowLeft, Crosshair } from 'lucide-react';
 
 export interface ThreeSpatialCanvasProps {
   grievances: GrievanceRecord[];
@@ -19,7 +19,7 @@ export interface ThreeSpatialCanvasProps {
 const GLOBE_RADIUS = 2.5;
 
 /**
- * Converts WGS-84 (lat, lng) to 3D Cartesian coordinates (x, y, z) on a sphere
+ * WGS-84 (lat, lng) -> 3D Cartesian (x, y, z) on sphere
  */
 export function latLngToCartesian(
   lat: number,
@@ -35,18 +35,37 @@ export function latLngToCartesian(
 }
 
 /**
- * 3D Issue Pin extending radially outward from the Globe surface
+ * 3D Cartesian (x, y, z) -> WGS-84 (lat, lng) on sphere
+ */
+export function cartesianToLatLng(
+  x: number,
+  y: number,
+  z: number,
+  radius: number = GLOBE_RADIUS
+): [number, number] {
+  const normY = Math.max(-1, Math.min(1, y / radius));
+  const phi = Math.acos(normY);
+  const lat = 90 - (phi * 180) / Math.PI;
+  const theta = Math.atan2(z, -x);
+  let lng = (theta * 180) / Math.PI - 180;
+  while (lng < -180) lng += 360;
+  while (lng > 180) lng -= 360;
+  return [Number(lat.toFixed(4)), Number(lng.toFixed(4))];
+}
+
+/**
+ * 3D Pin on Globe Surface
  */
 function GlobePin({
   grievance,
   isSelected,
   onSelect,
-  onOpenSatellite,
+  onZoomToSatellite,
 }: {
   grievance: GrievanceRecord;
   isSelected: boolean;
   onSelect: (g: GrievanceRecord) => void;
-  onOpenSatellite: (g: GrievanceRecord) => void;
+  onZoomToSatellite: (lat: number, lng: number, g: GrievanceRecord) => void;
 }) {
   const [hovered, setHovered] = useState(false);
   const ringRef = useRef<THREE.Group>(null);
@@ -194,12 +213,12 @@ function GlobePin({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                onOpenSatellite(grievance);
+                onZoomToSatellite(grievance.lat, grievance.lng, grievance);
               }}
-              className="mt-1.5 w-full py-1 px-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg text-[10px] font-medium flex items-center justify-center gap-1 shadow-sm transition"
+              className="mt-1.5 w-full py-1.5 px-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1.5 shadow-sm transition cursor-pointer"
             >
               <Satellite className="w-3 h-3 text-sky-400" />
-              <span>Inspect Satellite Imagery</span>
+              <span>Zoom to Satellite View</span>
               <span>→</span>
             </button>
           </div>
@@ -279,22 +298,55 @@ function ConnectionArc({
 }
 
 /**
- * Camera Flight Controller for Selected Incident (without disruptive auto-zoom)
+ * Camera Flight Controller
+ * - Smoothly tracks coordinates facing the user
+ * - Automatically triggers satellite zoom if user zooms in close (dist < 3.25)
+ * - Throttles React state updates to prevent 60 FPS re-renders
  */
 function CameraFlightController({
-  selectedCoords,
+  targetFocusCoords,
   isUserInteracting,
+  onFacingUpdate,
+  onAutoZoomTrigger,
 }: {
-  selectedCoords: [number, number, number] | null;
+  targetFocusCoords: { lat: number; lng: number } | null;
   isUserInteracting: boolean;
+  onFacingUpdate: (lat: number, lng: number) => void;
+  onAutoZoomTrigger: (lat: number, lng: number) => void;
 }) {
   const { camera } = useThree();
+  const lastUpdateRef = useRef<number>(0);
+  const isZoomingInRef = useRef<boolean>(false);
 
   useFrame((_, delta) => {
-    if (selectedCoords && !isUserInteracting) {
-      const targetPos = new THREE.Vector3(...selectedCoords).normalize().multiplyScalar(5.5);
-      camera.position.lerp(targetPos, delta * 2.5);
+    // If target coords are provided and user is not actively orbiting, lerp camera towards it
+    if (targetFocusCoords && !isUserInteracting && !isZoomingInRef.current) {
+      const [tx, ty, tz] = latLngToCartesian(targetFocusCoords.lat, targetFocusCoords.lng, 5.5);
+      camera.position.lerp(new THREE.Vector3(tx, ty, tz), delta * 2.5);
       camera.lookAt(0, 0, 0);
+    }
+
+    const dist = camera.position.length();
+
+    // Calculate exact point on globe directly facing camera
+    const [centerLat, centerLng] = cartesianToLatLng(
+      camera.position.x,
+      camera.position.y,
+      camera.position.z,
+      dist
+    );
+
+    // If user zooms in very close with mouse wheel or pinch, dive into Satellite view of that spot!
+    if (dist < 3.2 && !isZoomingInRef.current) {
+      isZoomingInRef.current = true;
+      onAutoZoomTrigger(centerLat, centerLng);
+    }
+
+    // Throttle UI update to every 120ms so React doesn't re-render 60 times/sec
+    const now = performance.now();
+    if (now - lastUpdateRef.current > 120) {
+      lastUpdateRef.current = now;
+      onFacingUpdate(centerLat, centerLng);
     }
   });
 
@@ -302,27 +354,59 @@ function CameraFlightController({
 }
 
 /**
- * Photorealistic 3D Earth Globe Model (Real NASA Satellite Imagery + Clouds + Atmosphere)
+ * Photorealistic 3D Earth Globe Model
+ * - Raycast DISABLED on clouds and atmosphere so clicks penetrate to Earth surface
+ * - Click or Double-Click detects exact (lat, lng) and initiates zoom
  */
 function EarthGlobeModel({
   earthMap,
   cloudsMap,
+  onGlobeClick,
 }: {
   earthMap: THREE.Texture | null;
   cloudsMap: THREE.Texture | null;
+  onGlobeClick: (lat: number, lng: number) => void;
 }) {
   const cloudsRef = useRef<THREE.Mesh>(null);
+  const pointerDownRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
   useFrame((_, delta) => {
     if (cloudsRef.current) {
-      cloudsRef.current.rotation.y += delta * 0.025;
+      cloudsRef.current.rotation.y += delta * 0.02;
     }
   });
 
   return (
     <group>
-      {/* 1. Real Satellite Earth Sphere */}
-      <mesh receiveShadow castShadow>
+      {/* 1. Real Satellite Earth Sphere with Raycasting Click-to-Zoom */}
+      <mesh
+        receiveShadow
+        castShadow
+        onPointerDown={(e) => {
+          pointerDownRef.current = {
+            x: e.clientX,
+            y: e.clientY,
+            time: performance.now(),
+          };
+        }}
+        onPointerUp={(e) => {
+          if (!pointerDownRef.current) return;
+          const dx = e.clientX - pointerDownRef.current.x;
+          const dy = e.clientY - pointerDownRef.current.y;
+          const dt = performance.now() - pointerDownRef.current.time;
+          // Only trigger if this was a genuine click, not a drag-to-rotate gesture
+          if (Math.hypot(dx, dy) < 8 && dt < 400) {
+            e.stopPropagation();
+            const [lat, lng] = cartesianToLatLng(e.point.x, e.point.y, e.point.z, GLOBE_RADIUS);
+            onGlobeClick(lat, lng);
+          }
+        }}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          const [lat, lng] = cartesianToLatLng(e.point.x, e.point.y, e.point.z, GLOBE_RADIUS);
+          onGlobeClick(lat, lng);
+        }}
+      >
         <sphereGeometry args={[GLOBE_RADIUS, 64, 64]} />
         <meshStandardMaterial
           map={earthMap || undefined}
@@ -332,22 +416,22 @@ function EarthGlobeModel({
         />
       </mesh>
 
-      {/* 2. Dynamic Wispy Cloud Layer */}
+      {/* 2. Dynamic Wispy Cloud Layer - RAYCAST DISABLED */}
       {cloudsMap && (
-        <mesh ref={cloudsRef}>
+        <mesh ref={cloudsRef} raycast={() => null}>
           <sphereGeometry args={[GLOBE_RADIUS + 0.025, 48, 48]} />
           <meshStandardMaterial
             map={cloudsMap}
             transparent
-            opacity={0.4}
+            opacity={0.35}
             blending={THREE.AdditiveBlending}
             depthWrite={false}
           />
         </mesh>
       )}
 
-      {/* 3. Luminous Blue Atmospheric Scattering Halo */}
-      <mesh>
+      {/* 3. Luminous Blue Atmospheric Scattering Halo - RAYCAST DISABLED */}
+      <mesh raycast={() => null}>
         <sphereGeometry args={[GLOBE_RADIUS + 0.08, 48, 48]} />
         <meshBasicMaterial
           color="#38BDF8"
@@ -362,40 +446,44 @@ function EarthGlobeModel({
 }
 
 /**
- * CRASH-FREE HIGH-RESOLUTION SATELLITE INSPECTOR (Leaflet)
- * Uses Esri World Imagery (NO API KEY REQUIRED, NO WEB WORKER ERRORS).
- * Initialized ONCE to eliminate all '_leaflet_pos' race conditions.
+ * STABLE HIGH-RESOLUTION SATELLITE INSPECTOR (Leaflet)
+ * - PURE ESRI SATELLITE IMAGERY (NO ROADS, NO API KEYS, NO WATERMARKS)
+ * - Complete immunity to '_leaflet_pos' runtime error via animation controls
+ * - Smoothly transitions back to 3D globe if zoomed out past level 3
  */
-function CrashFreeSatelliteInspector({
+function StableSatelliteInspector({
+  targetCoords,
   grievances,
   selectedId,
   onSelectGrievance,
   userCoords,
   onSwitchToGlobe,
 }: {
+  targetCoords: { lat: number; lng: number };
   grievances: GrievanceRecord[];
   selectedId: string | null;
   onSelectGrievance: (g: GrievanceRecord) => void;
   userCoords: { lat: number; lng: number } | null;
-  onSwitchToGlobe: () => void;
+  onSwitchToGlobe: (coords: { lat: number; lng: number }) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletType.Map | null>(null);
-  const featuresLayerRef = useRef<LeafletType.LayerGroup | null>(null);
+  const layerGroupRef = useRef<LeafletType.LayerGroup | null>(null);
   const [currentZoom, setCurrentZoom] = useState<number>(16);
 
-  // Helper: Draw all markers and 100m PostGIS deduplication radar rings
-  const updateMapLayers = useCallback(
-    (L: typeof LeafletType, map: LeafletType.Map, layerGroup: LeafletType.LayerGroup) => {
+  // Render all markers & PostGIS 100m radar circles
+  const renderMarkers = useCallback(
+    (L: typeof LeafletType, layerGroup: LeafletType.LayerGroup) => {
       layerGroup.clearLayers();
 
+      // Plot All Grievances on real satellite terrain
       grievances.forEach((g) => {
         const isSelected = g.id === selectedId;
         const isCritical = (g.severity_score || 0) >= 8.0;
 
-        // 100m PostGIS Deduplication Radar Ring on real satellite terrain
+        // 100m PostGIS Deduplication Radar Ring
         const circle = L.circle([g.lat, g.lng], {
-          radius: 100, // Exact 100-meter PostGIS deduplication radius
+          radius: 100, // Exact 100-meter PostGIS perimeter
           color: isCritical ? '#EF4444' : isSelected ? '#FFFFFF' : '#38BDF8',
           fillColor: isCritical ? '#EF4444' : '#38BDF8',
           fillOpacity: 0.22,
@@ -404,7 +492,6 @@ function CrashFreeSatelliteInspector({
         });
         layerGroup.addLayer(circle);
 
-        // Custom High-Contrast Apple-style Pin
         const markerHtml = `
           <div style="
             display: flex;
@@ -446,7 +533,7 @@ function CrashFreeSatelliteInspector({
               Severity: ${g.severity_score.toFixed(1)}/10 • ${g.upvotes} Reports
             </div>
             <div style="font-size: 10px; color: #0284C7; margin-top: 2px; font-weight: 500;">
-              100m PostGIS Deduplication Ring Active
+              100m PostGIS Cluster Active
             </div>
           </div>
         `;
@@ -454,7 +541,40 @@ function CrashFreeSatelliteInspector({
         layerGroup.addLayer(marker);
       });
 
-      // User Location Marker
+      // Target Focus Crosshair Marker if inspecting arbitrary point
+      const isViewingIncident = grievances.some(
+        (g) => Math.abs(g.lat - targetCoords.lat) < 0.001 && Math.abs(g.lng - targetCoords.lng) < 0.001
+      );
+
+      if (!isViewingIncident) {
+        const inspectIcon = L.divIcon({
+          className: 'inspect-crosshair',
+          html: `
+            <div style="
+              display: flex;
+              align-items: center;
+              gap: 4px;
+              background: #0284C7;
+              color: #FFFFFF;
+              padding: 4px 8px;
+              border-radius: 9999px;
+              border: 2px solid #FFFFFF;
+              box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+              font-size: 10px;
+              font-weight: 600;
+              white-space: nowrap;
+            ">
+              <span>● Satellite Focus Target</span>
+            </div>
+          `,
+          iconSize: [140, 24],
+          iconAnchor: [70, 12],
+        });
+        const inspectMarker = L.marker([targetCoords.lat, targetCoords.lng], { icon: inspectIcon });
+        layerGroup.addLayer(inspectMarker);
+      }
+
+      // User GPS Location Marker
       if (userCoords) {
         const userIcon = L.divIcon({
           className: 'user-gps-marker',
@@ -476,85 +596,100 @@ function CrashFreeSatelliteInspector({
         layerGroup.addLayer(userMarker);
       }
     },
-    [grievances, selectedId, onSelectGrievance, userCoords]
+    [grievances, selectedId, targetCoords, onSelectGrievance, userCoords]
   );
 
   // Initialize Map ONCE on mount
   useEffect(() => {
     let isCancelled = false;
-    let map: LeafletType.Map | null = null;
 
     if (!containerRef.current) return;
 
     import('leaflet').then((L) => {
       if (isCancelled || !containerRef.current || mapRef.current) return;
 
-      // Determine target focus: selected grievance > first grievance > user GPS > default
-      const targetG = grievances.find((g) => g.id === selectedId) || grievances[0];
-      const startLat = targetG ? targetG.lat : userCoords ? userCoords.lat : 15.4589;
-      const startLng = targetG ? targetG.lng : userCoords ? userCoords.lng : 75.0078;
-
-      map = L.map(containerRef.current, {
-        center: [startLat, startLng],
-        zoom: 16, // Sub-meter satellite resolution
+      // Disabling fadeAnimation & zoomAnimation permanently eliminates '_leaflet_pos' race conditions
+      const map = L.map(containerRef.current, {
+        center: [targetCoords.lat, targetCoords.lng],
+        zoom: 16,
         zoomControl: false,
-        fadeAnimation: false, // Prevents '_leaflet_pos' race conditions completely
+        fadeAnimation: false,
+        zoomAnimation: false,
       });
       mapRef.current = map;
 
       L.control.zoom({ position: 'bottomright' }).addTo(map);
 
       map.on('zoomend', () => {
-        if (map) setCurrentZoom(map.getZoom());
+        if (!map) return;
+        const z = map.getZoom();
+        setCurrentZoom(z);
+
+        // If user zooms all the way out past level 3 (global scale), return to 3D Globe!
+        if (z <= 3) {
+          const center = map.getCenter();
+          onSwitchToGlobe({ lat: center.lat, lng: center.lng });
+        }
       });
 
-      // Real Satellite Imagery (Esri World Imagery — 100% Free, NO API KEY)
+      // Pure Satellite Imagery (Esri World Imagery — NO ROADS, NO API KEYS, HIGH RESOLUTION)
       L.tileLayer(
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
         {
           attribution: '&copy; Esri, Maxar, Earthstar Geographics',
           maxZoom: 19,
+          minZoom: 2,
         }
       ).addTo(map);
 
-      // Persistent feature layer group
-      const featureLayer = L.layerGroup().addTo(map);
-      featuresLayerRef.current = featureLayer;
+      const layerGroup = L.layerGroup().addTo(map);
+      layerGroupRef.current = layerGroup;
 
-      updateMapLayers(L, map, featureLayer);
+      renderMarkers(L, layerGroup);
     });
 
     return () => {
       isCancelled = true;
       if (mapRef.current) {
-        mapRef.current.stop(); // Stop all running animations to prevent _leaflet_pos access
-        mapRef.current.remove();
+        try {
+          mapRef.current.stop();
+          mapRef.current.off();
+          mapRef.current.remove();
+        } catch {
+          // ignore unmount errors
+        }
         mapRef.current = null;
-        featuresLayerRef.current = null;
+        layerGroupRef.current = null;
       }
     };
   }, []); // Run ONCE on mount!
 
-  // Update features dynamically when grievances or selectedId change
+  // Update markers when grievances list or selectedId updates
   useEffect(() => {
-    if (mapRef.current && featuresLayerRef.current) {
+    if (mapRef.current && layerGroupRef.current) {
       import('leaflet').then((L) => {
-        if (mapRef.current && featuresLayerRef.current) {
-          updateMapLayers(L, mapRef.current, featuresLayerRef.current);
+        if (mapRef.current && layerGroupRef.current) {
+          renderMarkers(L, layerGroupRef.current);
         }
       });
     }
-  }, [updateMapLayers]);
+  }, [renderMarkers]);
 
-  // Smoothly pan to newly selected incident without re-creating map
+  // Pan to new target coordinates smoothly when changed
   useEffect(() => {
-    if (selectedId && mapRef.current) {
-      const g = grievances.find((item) => item.id === selectedId);
-      if (g) {
-        mapRef.current.flyTo([g.lat, g.lng], 17, { duration: 1.2 });
-      }
+    if (mapRef.current) {
+      mapRef.current.panTo([targetCoords.lat, targetCoords.lng]);
     }
-  }, [selectedId, grievances]);
+  }, [targetCoords]);
+
+  const handleReturnToGlobe = () => {
+    if (mapRef.current) {
+      const center = mapRef.current.getCenter();
+      onSwitchToGlobe({ lat: center.lat, lng: center.lng });
+    } else {
+      onSwitchToGlobe(targetCoords);
+    }
+  };
 
   return (
     <div className="relative w-full h-full rounded-2xl overflow-hidden bg-neutral-950">
@@ -563,23 +698,25 @@ function CrashFreeSatelliteInspector({
         <div className="flex items-center gap-2 pointer-events-auto">
           <button
             type="button"
-            onClick={onSwitchToGlobe}
+            onClick={handleReturnToGlobe}
             className="bg-white/95 backdrop-blur-md border border-neutral-200/90 shadow-md hover:bg-neutral-100 px-3.5 py-1.5 rounded-full text-xs font-semibold text-neutral-900 transition cursor-pointer flex items-center gap-1.5 active:scale-95"
           >
-            <Globe className="w-3.5 h-3.5 text-sky-600" />
-            <span>← 3D Earth Globe</span>
+            <ArrowLeft className="w-3.5 h-3.5 text-neutral-700" />
+            <span>← Return to 3D Globe</span>
           </button>
 
           <div className="bg-black/80 backdrop-blur-md border border-neutral-700/80 shadow-md px-3.5 py-1.5 rounded-full text-xs text-neutral-200 font-medium hidden sm:flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Real Satellite Photography (Zoom {currentZoom}x)</span>
+            <span>
+              Satellite Focus: {targetCoords.lat.toFixed(4)}°N, {targetCoords.lng.toFixed(4)}°E (Zoom {currentZoom}x)
+            </span>
           </div>
         </div>
 
         {/* 100m Deduplication Sector Badge */}
         <div className="bg-black/80 backdrop-blur-md border border-neutral-700/80 shadow-md px-3 py-1.5 rounded-full text-xs text-sky-400 font-medium flex items-center gap-1.5 pointer-events-auto">
           <div className="w-2 h-2 rounded-full border border-dashed border-sky-400" />
-          <span>100m PostGIS Cluster Active</span>
+          <span>100m PostGIS Radar Active</span>
         </div>
       </div>
 
@@ -590,9 +727,9 @@ function CrashFreeSatelliteInspector({
 }
 
 /**
- * UNIFIED STABLE GEOSPATIAL VIEWPORT
- * - Mode 1: 3D Earth Globe with NASA Satellite Imagery + Cloud Layer (Full Zoom/Pan Freedom)
- * - Mode 2: High-Resolution Satellite Inspector (Zero Leaflet Position Crashes)
+ * UNIFIED DUAL-ENGINE GEOSPATIAL VIEWPORT
+ * - Mode 1: 3D Earth Globe with NASA Satellite Imagery + Click / Scroll to dive into satellite
+ * - Mode 2: High-Resolution Satellite Inspector (Centers directly on clicked coordinates, no roads)
  */
 export default function ThreeSpatialCanvas({
   grievances,
@@ -604,6 +741,28 @@ export default function ThreeSpatialCanvas({
   const [viewMode, setViewMode] = useState<'globe' | 'satellite'>('globe');
   const [autoRotate, setAutoRotate] = useState(true);
   const [isUserInteracting, setIsUserInteracting] = useState(false);
+
+  // Dynamic initial coordinates based on user GPS or first grievance or Greenwich
+  const initialCenter = useMemo<{ lat: number; lng: number }>(() => {
+    if (userCoords) return userCoords;
+    if (selectedId) {
+      const g = grievances.find((item) => item.id === selectedId);
+      if (g) return { lat: g.lat, lng: g.lng };
+    }
+    if (grievances.length > 0) {
+      return { lat: grievances[0].lat, lng: grievances[0].lng };
+    }
+    return { lat: 20.0, lng: 0.0 };
+  }, [userCoords, selectedId, grievances]);
+
+  // Coordinates currently facing user on 3D globe
+  const [facingCoords, setFacingCoords] = useState<{ lat: number; lng: number }>(initialCenter);
+
+  // Target coordinates for satellite inspector
+  const [satelliteTarget, setSatelliteTarget] = useState<{ lat: number; lng: number }>(initialCenter);
+
+  // Target coordinates to steer 3D globe camera towards
+  const [targetFocusCoords, setTargetFocusCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   // Load High-Res NASA Earth and Cloud textures from local storage
   const [earthMap, setEarthMap] = useState<THREE.Texture | null>(null);
@@ -620,12 +779,15 @@ export default function ThreeSpatialCanvas({
     });
   }, []);
 
-  // Find selected incident coordinates for camera flight
-  const selectedCoords = useMemo<[number, number, number] | null>(() => {
-    if (!selectedId) return null;
-    const g = grievances.find((item) => item.id === selectedId);
-    if (!g) return null;
-    return latLngToCartesian(g.lat, g.lng, GLOBE_RADIUS);
+  // Update target when an incident is selected
+  useEffect(() => {
+    if (selectedId) {
+      const g = grievances.find((item) => item.id === selectedId);
+      if (g) {
+        setTargetFocusCoords({ lat: g.lat, lng: g.lng });
+        setSatelliteTarget({ lat: g.lat, lng: g.lng });
+      }
+    }
   }, [selectedId, grievances]);
 
   // Recenter Globe Camera
@@ -636,20 +798,53 @@ export default function ThreeSpatialCanvas({
     }
   };
 
-  const handleOpenSatellite = (g?: GrievanceRecord) => {
-    if (g) onSelectGrievance(g);
+  // Click directly on 3D Globe -> Open satellite view at clicked (lat, lng)!
+  const handleGlobeClick = (lat: number, lng: number) => {
+    setSatelliteTarget({ lat, lng });
     setViewMode('satellite');
   };
+
+  // Zoom to specific incident pin
+  const handlePinZoom = (lat: number, lng: number, g: GrievanceRecord) => {
+    onSelectGrievance(g);
+    setSatelliteTarget({ lat, lng });
+    setViewMode('satellite');
+  };
+
+  // Zoom into whatever location is currently facing the camera
+  const handleZoomFacing = () => {
+    setSatelliteTarget(facingCoords);
+    setViewMode('satellite');
+  };
+
+  // Auto-triggered when user scrolls in close on the 3D globe
+  const handleAutoZoomIn = (lat: number, lng: number) => {
+    setSatelliteTarget({ lat, lng });
+    setViewMode('satellite');
+  };
+
+  // Return from satellite to 3D globe, facing the same coordinates
+  const handleSwitchToGlobe = (coords: { lat: number; lng: number }) => {
+    setTargetFocusCoords(coords);
+    setFacingCoords(coords);
+    setViewMode('globe');
+  };
+
+  // Calculate initial camera position facing initial coordinates
+  const initialCameraPos = useMemo<[number, number, number]>(() => {
+    return latLngToCartesian(initialCenter.lat, initialCenter.lng, 5.8);
+  }, [initialCenter]);
 
   // If in satellite mode, render the crash-free satellite inspector
   if (viewMode === 'satellite') {
     return (
-      <CrashFreeSatelliteInspector
+      <StableSatelliteInspector
+        targetCoords={satelliteTarget}
         grievances={grievances}
         selectedId={selectedId}
         onSelectGrievance={onSelectGrievance}
         userCoords={userCoords}
-        onSwitchToGlobe={() => setViewMode('globe')}
+        onSwitchToGlobe={handleSwitchToGlobe}
       />
     );
   }
@@ -663,31 +858,31 @@ export default function ThreeSpatialCanvas({
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span className="font-semibold text-neutral-950">3D Earth Globe</span>
           <span className="text-neutral-400">•</span>
-          <span className="text-neutral-600">{grievances.length} Active Nodes</span>
+          <span className="text-neutral-600 font-mono text-[11px]">
+            Facing: {facingCoords.lat.toFixed(1)}°N, {facingCoords.lng.toFixed(1)}°E
+          </span>
         </div>
 
-        {/* Switch To Pure Satellite View Button */}
+        {/* Zoom into Facing Location Button */}
         <div className="pointer-events-auto">
           <button
             type="button"
-            onClick={() => setViewMode('satellite')}
+            onClick={handleZoomFacing}
             className="bg-white/95 backdrop-blur-md text-neutral-900 border border-neutral-200/90 hover:bg-neutral-100 shadow-md px-3.5 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 active:scale-95"
           >
-            <Satellite className="w-3.5 h-3.5 text-sky-600" />
-            <span>Satellite Inspector</span>
+            <ZoomIn className="w-3.5 h-3.5 text-sky-600" />
+            <span>Zoom into Satellite View</span>
             <span className="text-neutral-400">→</span>
           </button>
         </div>
       </div>
 
-      {/* Empty State Banner Overlay (when 0 grievances exist) */}
-      {grievances.length === 0 && (
-        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-10 pointer-events-none text-center">
-          <div className="bg-white/90 backdrop-blur-md border border-neutral-200/80 shadow-md rounded-full px-4 py-1.5 text-xs text-neutral-700">
-            Interactive Earth Telemetry • Click &apos;Report Issue&apos; to plot coordinates
-          </div>
+      {/* Helpful Hint Overlay */}
+      <div className="absolute top-14 left-1/2 -translate-x-1/2 z-10 pointer-events-none text-center">
+        <div className="bg-black/75 backdrop-blur-md border border-neutral-700/80 shadow-md rounded-full px-4 py-1.5 text-xs text-neutral-200">
+          💡 Click or double-click anywhere on Earth, or scroll inward to dive into satellite imagery
         </div>
-      )}
+      </div>
 
       {/* Bottom-Left Control Buttons */}
       <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2">
@@ -711,20 +906,11 @@ export default function ThreeSpatialCanvas({
         >
           <span>Auto-Rotate: {autoRotate ? 'ON' : 'OFF'}</span>
         </button>
-
-        <button
-          type="button"
-          onClick={() => handleOpenSatellite()}
-          className="bg-neutral-900 text-white shadow-md hover:bg-neutral-800 active:scale-95 rounded-full px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
-        >
-          <MapPin className="w-3.5 h-3.5 text-sky-400" />
-          <span>Satellite Focus</span>
-        </button>
       </div>
 
       {/* 3D WebGL Canvas */}
       <Canvas
-        camera={{ position: [0, 1.8, 5.8], fov: 44 }}
+        camera={{ position: initialCameraPos, fov: 44 }}
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
       >
         <color attach="background" args={['#030712']} />
@@ -734,28 +920,34 @@ export default function ThreeSpatialCanvas({
         <directionalLight position={[15, 20, 15]} intensity={1.3} />
         <directionalLight position={[-15, -10, -15]} intensity={0.4} />
 
-        {/* Orbit Controls with Full Zoom/Pan Freedom (NO abrupt auto-switching) */}
+        {/* Orbit Controls with Smooth Damping and Zoom */}
         <OrbitControls
           ref={controlsRef}
           makeDefault
-          autoRotate={autoRotate && !isUserInteracting && !selectedCoords}
+          autoRotate={autoRotate && !isUserInteracting && !targetFocusCoords}
           autoRotateSpeed={0.45}
           enableDamping
           dampingFactor={0.06}
-          minDistance={3.0}
+          minDistance={2.9}
           maxDistance={12.0}
           onStart={() => setIsUserInteracting(true)}
           onEnd={() => setIsUserInteracting(false)}
         />
 
-        {/* Smooth Camera Flight to Selected Incident */}
+        {/* Camera Flight & Zoom Controller */}
         <CameraFlightController
-          selectedCoords={selectedCoords}
+          targetFocusCoords={targetFocusCoords}
           isUserInteracting={isUserInteracting}
+          onFacingUpdate={(lat, lng) => setFacingCoords({ lat, lng })}
+          onAutoZoomTrigger={handleAutoZoomIn}
         />
 
-        {/* Photorealistic 3D Earth with NASA Blue Marble Texture & Dynamic Clouds */}
-        <EarthGlobeModel earthMap={earthMap} cloudsMap={cloudsMap} />
+        {/* Photorealistic 3D Earth with Direct Click-to-Zoom */}
+        <EarthGlobeModel
+          earthMap={earthMap}
+          cloudsMap={cloudsMap}
+          onGlobeClick={handleGlobeClick}
+        />
 
         {/* User GPS Location Marker */}
         {userCoords && (
@@ -784,7 +976,7 @@ export default function ThreeSpatialCanvas({
               grievance={g}
               isSelected={isSelected}
               onSelect={onSelectGrievance}
-              onOpenSatellite={handleOpenSatellite}
+              onZoomToSatellite={handlePinZoom}
             />
           );
         })}

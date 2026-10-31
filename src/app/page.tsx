@@ -168,9 +168,29 @@ export default function CivicPulsePage() {
     }
   }, [filterDept]);
 
-  // Initial load & Supabase Realtime WebSocket subscription
+  // Initial load & Supabase Realtime WebSocket subscription + Geolocation lock
   useEffect(() => {
     fetchGrievances();
+
+    // Silently attempt to acquire user GPS coordinates if permitted
+    if (typeof window !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude.toFixed(5);
+          const lng = position.coords.longitude.toFixed(5);
+          setLatitude(lat);
+          setLongitude(lng);
+          setUserGpsCoords({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        () => {
+          // Keep current defaults if permission not granted
+        },
+        { timeout: 6000, maximumAge: 60000 }
+      );
+    }
 
     const channel = supabaseBrowser
       .channel('civic-pulse-realtime')
