@@ -267,16 +267,11 @@ export default function CivicPulsePage() {
     }
   }, [filterDept]);
 
-  // Manual refresh with pleasant minimum duration so user sees the speeder dispatch animation
+  // Manual refresh without artificial delays
   const handleManualRefresh = async () => {
     setIsSyncing(true);
-    const start = performance.now();
     try {
       await fetchGrievances();
-      const elapsed = performance.now() - start;
-      if (elapsed < 850) {
-        await new Promise((r) => setTimeout(r, 850 - elapsed));
-      }
     } finally {
       setIsSyncing(false);
     }
@@ -284,16 +279,7 @@ export default function CivicPulsePage() {
 
   // Initial load & Supabase Realtime WebSocket subscription + Geolocation lock
   useEffect(() => {
-    const init = async () => {
-      const start = performance.now();
-      await fetchGrievances();
-      const elapsed = performance.now() - start;
-      if (elapsed < 800) {
-        await new Promise((r) => setTimeout(r, 800 - elapsed));
-      }
-      setIsLoading(false);
-    };
-    init();
+    fetchGrievances();
 
     // Silently attempt to acquire user GPS coordinates if permitted
     if (typeof window !== 'undefined' && navigator.geolocation) {
@@ -778,23 +764,7 @@ export default function CivicPulsePage() {
     setTimeout(() => setCopiedWorkOrder(false), 2000);
   };
 
-  // Initial full-page speeder loading screen
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-canvas-pattern flex flex-col items-center justify-center p-6 antialiased">
-        <div className="w-full max-w-sm bg-white/95 backdrop-blur-2xl border border-[#E4E1D6] rounded-3xl p-8 shadow-[0_16px_50px_rgba(40,35,25,0.08)] flex flex-col items-center text-center">
-          <SpeederLoader
-            title="Initializing CivicPulse Mesh..."
-            subtitle="Loading autonomous global triage, satellite imagery & municipal records"
-          />
-          <div className="w-48 bg-[#EAE6DC] rounded-full h-1.5 mt-6 overflow-hidden">
-            <div className="bg-neutral-900 h-full rounded-full animate-pulse w-3/4" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  // 1. PUBLIC HOMEPAGE RENDERS INSTANTLY (Zero-delay FCP)
   if (activeTab === 'HOME') {
     return (
       <LandingView
@@ -1526,6 +1496,26 @@ export default function CivicPulsePage() {
               {/* Feed List */}
               <div className="space-y-3">
                 {(() => {
+                  if (isLoading && grievances.length === 0) {
+                    return (
+                      <div className="space-y-3">
+                        {[1, 2, 3].map((i) => (
+                          <div
+                            key={i}
+                            className="bg-white/90 backdrop-blur-md rounded-2xl border border-neutral-200/90 p-4 space-y-3 animate-pulse shadow-xs"
+                          >
+                            <div className="flex justify-between items-center">
+                              <div className="h-4 w-28 bg-neutral-200 rounded-md" />
+                              <div className="h-3 w-16 bg-neutral-100 rounded-md" />
+                            </div>
+                            <div className="h-4 w-3/4 bg-neutral-200 rounded-md" />
+                            <div className="h-3 w-1/2 bg-neutral-100 rounded-md" />
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+
                   const itemsToDisplay =
                     feedViewMode === 'ACTIVE'
                       ? grievances.filter((g) => g.status !== 'RESOLVED')
