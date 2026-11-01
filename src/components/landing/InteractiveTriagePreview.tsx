@@ -144,32 +144,51 @@ export function InteractiveTriagePreview({
       </div>
 
       {/* Scenario Switcher Tabs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {SCENARIOS.map((scenario) => {
           const isSelected = scenario.id === selectedScenarioId;
+          const pulseColor =
+            scenario.urgency === 'CRITICAL'
+              ? 'bg-red-500'
+              : scenario.urgency === 'HIGH'
+              ? 'bg-amber-500'
+              : 'bg-emerald-500';
+
           return (
             <button
               key={scenario.id}
               type="button"
               onClick={() => setSelectedScenarioId(scenario.id)}
-              className={`p-3 rounded-2xl text-left border transition-all cursor-pointer ${
+              className={`text-left transition-all cursor-pointer ${
                 isSelected
-                  ? 'bg-white border-zinc-950 shadow-md ring-1 ring-black/10'
-                  : 'bg-white hover:bg-zinc-50 border-zinc-200 text-zinc-700 hover:text-zinc-950'
+                  ? 'relative bg-white border-2 border-zinc-950 rounded-2xl p-4 shadow-[0_10px_25px_-6px_rgba(0,0,0,0.14)] -translate-y-0.5'
+                  : 'bg-zinc-50/80 border border-zinc-200/80 rounded-2xl p-4 text-zinc-600 hover:bg-white hover:border-zinc-300 hover:shadow-sm'
               }`}
             >
+              {/* Top-Right Urgency Pulsing Dot for Selected Scenario */}
+              {isSelected && (
+                <span className="absolute top-3.5 right-3.5 flex h-2 w-2">
+                  <span
+                    className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${pulseColor}`}
+                  />
+                  <span
+                    className={`relative inline-flex rounded-full h-2 w-2 ${pulseColor}`}
+                  />
+                </span>
+              )}
+
               <div className="text-[10px] font-bold uppercase tracking-wider truncate text-zinc-500">
                 {scenario.department.split('&')[0]}
               </div>
-              <div className="text-xs font-bold truncate mt-0.5 text-zinc-950">
+              <div className="text-xs font-bold truncate mt-1 text-zinc-950">
                 {scenario.title.split(' ')[0]} {scenario.title.split(' ')[1]}
               </div>
-              <div className="flex items-center gap-1 mt-2 text-[10px] font-mono">
+              <div className="flex items-center gap-1.5 mt-2.5 text-[10px] font-mono">
                 <span className="text-red-600 font-bold">
                   ★ {scenario.severity}
                 </span>
                 <span className="text-zinc-400">•</span>
-                <span className="text-zinc-600">
+                <span className="text-zinc-600 font-medium">
                   {scenario.sla.split(' ')[0]} SLA
                 </span>
               </div>
@@ -178,130 +197,151 @@ export function InteractiveTriagePreview({
         })}
       </div>
 
-      {/* Simulator Display Card with 3D Tilt */}
+      {/* Simulator Display Card with 3D Tilt & Recessed Console Tray */}
       <TiltCard3D maxTilt={5} glare={true} className="rounded-3xl">
-        <div className="rounded-3xl p-6 sm:p-8 space-y-6 border border-zinc-200 bg-white shadow-sm">
-          {/* Header Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-zinc-200">
-            <div className="space-y-1">
+        <div className="rounded-3xl p-6 sm:p-8 border border-zinc-200/90 bg-zinc-50/90 shadow-inner">
+          <style>{`
+            @keyframes scenarioFadeIn {
+              from {
+                opacity: 0;
+                transform: translateY(4px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+          `}</style>
+
+          <div
+            key={activeScenario.id}
+            className="space-y-5"
+            style={{
+              animation: 'scenarioFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            }}
+          >
+            {/* Crisp White Header Bar Inside Recessed Console */}
+            <div className="bg-white border border-zinc-200/80 rounded-2xl p-5 shadow-sm flex flex-wrap items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border bg-zinc-100 text-zinc-800 border-zinc-300">
+                    {activeScenario.department}
+                  </span>
+                  <span className="text-xs text-zinc-400 font-mono">
+                    {activeScenario.departmentCode}
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-zinc-950">
+                  {activeScenario.title}
+                </h3>
+              </div>
+
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border bg-zinc-100 text-zinc-800 border-zinc-300">
-                  {activeScenario.department}
+                <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border text-red-700 bg-red-50 border-red-200">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span>Severity: {activeScenario.severity} / 10</span>
                 </span>
-                <span className="text-xs text-zinc-400 font-mono">
-                  {activeScenario.departmentCode}
+                <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border text-emerald-800 bg-emerald-50 border-emerald-200">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{activeScenario.sla}</span>
                 </span>
               </div>
-              <h3 className="text-base sm:text-lg font-bold text-zinc-950">
-                {activeScenario.title}
-              </h3>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border text-red-700 bg-red-50 border-red-200">
-                <AlertCircle className="w-3.5 h-3.5" />
-                <span>Severity: {activeScenario.severity} / 10</span>
+            {/* Grid: Context & Evidence Extraction (Crisp White Floating Cards) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Location & GPS */}
+              <div className="p-4 rounded-2xl border border-zinc-200/90 bg-white shadow-sm hover:border-zinc-300 transition-all duration-200 space-y-1.5">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-600">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Geospatial Coordinates</span>
+                </div>
+                <p className="text-xs font-medium text-zinc-900">
+                  {activeScenario.location}
+                </p>
+                <div className="text-[10px] text-zinc-500 font-mono">
+                  Accuracy: ±1.8m (RTK Differential)
+                </div>
+              </div>
+
+              {/* Weather Telemetry */}
+              <div className="p-4 rounded-2xl border border-zinc-200/90 bg-white shadow-sm hover:border-zinc-300 transition-all duration-200 space-y-1.5">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-600">
+                  <CloudRain className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Live Open-Meteo Telemetry</span>
+                </div>
+                <div className="flex items-center gap-3 text-xs font-bold text-zinc-900">
+                  <span>{activeScenario.weather.temp}</span>
+                  <span>•</span>
+                  <span className="text-sky-600">{activeScenario.weather.rain}</span>
+                  <span>•</span>
+                  <span>{activeScenario.weather.wind}</span>
+                </div>
+                <div className="text-[10px] text-zinc-500">
+                  Risk Factor: Rainfall Elevation Active
+                </div>
+              </div>
+
+              {/* Evidence Slot */}
+              <div className="p-4 rounded-2xl border border-zinc-200/90 bg-white shadow-sm hover:border-zinc-300 transition-all duration-200 space-y-1.5">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-600">
+                  <Camera className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Intake Modality</span>
+                </div>
+                <p className="text-xs font-medium text-zinc-900">
+                  {activeScenario.evidenceType}
+                </p>
+                <div className="text-[10px] text-emerald-600 font-semibold">
+                  ✓ Cryptographically Sealed &amp; Verified
+                </div>
+              </div>
+            </div>
+
+            {/* AI Reasoning & Work Order Draft (With Semantic Colored Left Accents) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* AI Diagnosis */}
+              <div className="p-5 rounded-2xl border border-zinc-200/90 bg-white space-y-2 shadow-sm border-l-4 border-l-emerald-500 hover:border-zinc-300 transition-all duration-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-zinc-950 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>Multimodal AI Diagnosis Breakdown</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-medium">
+                    98.4% Confidence
+                  </span>
+                </div>
+                <p className="text-xs leading-relaxed text-zinc-700">
+                  {activeScenario.aiDiagnosis}
+                </p>
+              </div>
+
+              {/* Drafted Contractor Work Order */}
+              <div className="p-5 rounded-2xl border border-zinc-200/90 bg-white space-y-2 shadow-sm border-l-4 border-l-zinc-900 hover:border-zinc-300 transition-all duration-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-zinc-950 flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-sky-500" />
+                    <span>Autonomous Work Order Draft</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-zinc-700 bg-zinc-100 px-2 py-0.5 rounded-full border border-zinc-200 font-medium">
+                    Auto-Dispatched
+                  </span>
+                </div>
+                <p className="text-xs leading-relaxed text-zinc-700">
+                  {activeScenario.workOrderDraft}
+                </p>
+              </div>
+            </div>
+
+            {/* Bottom Security Seal */}
+            <div className="pt-3 flex items-center justify-between text-xs text-zinc-500 border-t border-zinc-200/80">
+              <span className="flex items-center gap-1.5">
+                <Shield className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Tamper-evident HMAC-SHA256 audit log attached</span>
               </span>
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border text-emerald-800 bg-emerald-50 border-emerald-200">
-                <Clock className="w-3.5 h-3.5" />
-                <span>{activeScenario.sla}</span>
+              <span className="font-mono text-[10px] text-zinc-400">
+                Latency: 480ms Triage Speed
               </span>
             </div>
-          </div>
-
-          {/* Grid: Context & Evidence Extraction */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Location & GPS */}
-            <div className="p-4 rounded-2xl border border-zinc-200 bg-zinc-50 space-y-1.5">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-600">
-                <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Geospatial Coordinates</span>
-              </div>
-              <p className="text-xs font-medium text-zinc-900">
-                {activeScenario.location}
-              </p>
-              <div className="text-[10px] text-zinc-500 font-mono">
-                Accuracy: ±1.8m (RTK Differential)
-              </div>
-            </div>
-
-            {/* Weather Telemetry */}
-            <div className="p-4 rounded-2xl border border-zinc-200 bg-zinc-50 space-y-1.5">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-600">
-                <CloudRain className="w-3.5 h-3.5 text-sky-600" />
-                <span>Live Open-Meteo Telemetry</span>
-              </div>
-              <div className="flex items-center gap-3 text-xs font-bold text-zinc-900">
-                <span>{activeScenario.weather.temp}</span>
-                <span>•</span>
-                <span className="text-sky-600">{activeScenario.weather.rain}</span>
-                <span>•</span>
-                <span>{activeScenario.weather.wind}</span>
-              </div>
-              <div className="text-[10px] text-zinc-500">
-                Risk Factor: Rainfall Elevation Active
-              </div>
-            </div>
-
-            {/* Evidence Slot */}
-            <div className="p-4 rounded-2xl border border-zinc-200 bg-zinc-50 space-y-1.5">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-600">
-                <Camera className="w-3.5 h-3.5 text-purple-600" />
-                <span>Intake Modality</span>
-              </div>
-              <p className="text-xs font-medium text-zinc-900">
-                {activeScenario.evidenceType}
-              </p>
-              <div className="text-[10px] text-emerald-600 font-semibold">
-                ✓ Cryptographically Sealed &amp; Verified
-              </div>
-            </div>
-          </div>
-
-          {/* AI Reasoning & Work Order Draft */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-            {/* AI Diagnosis */}
-            <div className="p-5 rounded-2xl border border-zinc-200 bg-white space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-zinc-950 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Multimodal AI Diagnosis Breakdown</span>
-                </span>
-                <span className="text-[10px] font-mono text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                  98.4% Confidence
-                </span>
-              </div>
-              <p className="text-xs leading-relaxed text-zinc-700">
-                {activeScenario.aiDiagnosis}
-              </p>
-            </div>
-
-            {/* Drafted Contractor Work Order */}
-            <div className="p-5 rounded-2xl border border-zinc-200 bg-white space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-zinc-950 flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5 text-sky-500" />
-                  <span>Autonomous Work Order Draft</span>
-                </span>
-                <span className="text-[10px] font-mono text-zinc-600 bg-zinc-100 px-2 py-0.5 rounded-full border border-zinc-200">
-                  Auto-Dispatched
-                </span>
-              </div>
-              <p className="text-xs leading-relaxed text-zinc-700">
-                {activeScenario.workOrderDraft}
-              </p>
-            </div>
-          </div>
-
-          {/* Bottom Security Seal */}
-          <div className="pt-2 flex items-center justify-between text-xs text-zinc-500 border-t border-zinc-200">
-            <span className="flex items-center gap-1.5">
-              <Shield className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Tamper-evident HMAC-SHA256 audit log attached</span>
-            </span>
-            <span className="font-mono text-[10px] text-zinc-400">
-              Latency: 480ms Triage Speed
-            </span>
           </div>
         </div>
       </TiltCard3D>

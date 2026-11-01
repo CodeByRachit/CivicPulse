@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { TiltCard3D } from './TiltCard3D';
 import {
   Globe,
@@ -130,12 +130,56 @@ interface PlatformFeaturesProps {
 
 export function PlatformFeatures({ onExploreFeatures }: PlatformFeaturesProps) {
   const [activeFeatureId, setActiveFeatureId] = useState<string>('geospatial');
+  const [pillGeometry, setPillGeometry] = useState({
+    left: 0,
+    top: 0,
+    width: 0,
+    height: 0,
+    ready: false,
+  });
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const updatePill = useCallback(() => {
+    const activeIndex = FEATURES.findIndex((f) => f.id === activeFeatureId);
+    const activeBtn = tabRefs.current[activeIndex];
+    const container = containerRef.current;
+    if (activeBtn && container) {
+      setPillGeometry({
+        left: activeBtn.offsetLeft,
+        top: activeBtn.offsetTop,
+        width: activeBtn.offsetWidth,
+        height: activeBtn.offsetHeight,
+        ready: true,
+      });
+    }
+  }, [activeFeatureId]);
+
+  useEffect(() => {
+    updatePill();
+    window.addEventListener('resize', updatePill);
+    return () => window.removeEventListener('resize', updatePill);
+  }, [updatePill]);
 
   const selectedFeature =
     FEATURES.find((f) => f.id === activeFeatureId) || FEATURES[0];
 
   return (
     <section className="w-full max-w-6xl mx-auto px-6 py-12">
+      {/* Dynamic Keyframes for Showcase Card Entry */}
+      <style>{`
+        @keyframes featureFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(6px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
+
       {/* Section Header */}
       <div className="text-center max-w-2xl mx-auto mb-10">
         <div className="inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-[11px] font-semibold tracking-wider shadow-2xs mb-3 border border-zinc-200 bg-white text-emerald-700">
@@ -150,19 +194,37 @@ export function PlatformFeatures({ onExploreFeatures }: PlatformFeaturesProps) {
         </p>
       </div>
 
-      {/* Feature Selector Tabs (Pill Grid) */}
-      <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
-        {FEATURES.map((feature) => {
+      {/* Feature Selector Tabs (Pill Grid with Sliding Black Capsule) */}
+      <div
+        ref={containerRef}
+        className="relative flex flex-wrap items-center justify-center gap-2.5 p-1.5 max-w-4xl mx-auto mb-8"
+      >
+        {/* Moving Black Pill Indicator */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute left-0 top-0 z-0 rounded-full bg-zinc-950 shadow-[0_10px_25px_-4px_rgba(0,0,0,0.35)] transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          style={{
+            transform: `translate3d(${pillGeometry.left}px, ${pillGeometry.top}px, 0)`,
+            width: `${pillGeometry.width}px`,
+            height: `${pillGeometry.height}px`,
+            opacity: pillGeometry.ready ? 1 : 0,
+          }}
+        />
+
+        {FEATURES.map((feature, idx) => {
           const isActive = feature.id === activeFeatureId;
           return (
             <button
               key={feature.id}
+              ref={(el) => {
+                tabRefs.current[idx] = el;
+              }}
               type="button"
               onClick={() => setActiveFeatureId(feature.id)}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
+              className={`relative z-10 flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors duration-200 cursor-pointer ${
                 isActive
-                  ? 'bg-zinc-950 text-white border-zinc-950 shadow-xs'
-                  : 'bg-white hover:bg-zinc-50 text-zinc-600 hover:text-zinc-950 border-zinc-200'
+                  ? 'text-white border border-transparent'
+                  : 'bg-white/70 text-zinc-700 border border-zinc-200/90 hover:border-zinc-300 hover:bg-zinc-100/70 hover:text-zinc-950'
               }`}
             >
               <span className={isActive ? 'text-emerald-400' : 'text-zinc-500'}>
@@ -174,8 +236,14 @@ export function PlatformFeatures({ onExploreFeatures }: PlatformFeaturesProps) {
         })}
       </div>
 
-      {/* Spotlight Feature Card */}
-      <div className="rounded-3xl p-6 sm:p-8 md:p-10 shadow-sm relative overflow-hidden transition-all duration-300 border border-zinc-200 bg-white">
+      {/* Spotlight Feature Card with Keyed Transition */}
+      <div
+        key={activeFeatureId}
+        className="rounded-3xl p-8 lg:p-10 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.06)] relative overflow-hidden transition-all duration-300 ease-out border border-zinc-200/90 bg-white"
+        style={{
+          animation: 'featureFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        }}
+      >
         {/* Subtle Ambient Radial Highlight */}
         <div className="absolute top-0 right-0 w-96 h-96 pointer-events-none rounded-full blur-2xl bg-gradient-to-bl from-emerald-100/40 via-transparent to-transparent" />
 

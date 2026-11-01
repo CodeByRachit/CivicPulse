@@ -864,15 +864,15 @@ function ScrollReactiveCity({
   const cityGroupRef = useRef<THREE.Group>(null);
   const { size } = useThree();
 
-  // Responsive base coordinates: Scaled up to large commanding stage size
+  // Responsive base coordinates: Lowered Y-position to provide generous 60-80px headroom above spires
   const { baseX, baseY, targetScale } = useMemo(() => {
     if (size.width >= 1024) {
-      return { baseX: 0, baseY: -0.55, targetScale: 1.55 };
+      return { baseX: 0, baseY: -1.15, targetScale: 1.55 };
     }
     if (size.width >= 768) {
-      return { baseX: 0, baseY: -0.60, targetScale: 1.40 };
+      return { baseX: 0, baseY: -1.20, targetScale: 1.40 };
     }
-    return { baseX: 0, baseY: -0.65, targetScale: 1.20 };
+    return { baseX: 0, baseY: -1.25, targetScale: 1.20 };
   }, [size.width]);
 
   useFrame((_, delta) => {
@@ -979,7 +979,7 @@ export default function CityInfrastructure3D({
   return (
     <div className="w-full h-full relative cursor-grab active:cursor-grabbing select-none touch-pan-y bg-white">
       <Canvas
-        camera={{ position: [6.5, 5.8, 6.5], fov: 35 }}
+        camera={{ position: [6.8, 5.6, 6.8], fov: 35 }}
         gl={{ antialias: true, alpha: true }}
         dpr={[1, 1.5]}
       >
@@ -1013,6 +1013,7 @@ export default function CityInfrastructure3D({
           enableZoom={false}
           enablePan={false}
           autoRotate={false}
+          target={[0, -0.4, 0]}
           maxPolarAngle={Math.PI * 0.44}
           minPolarAngle={Math.PI * 0.22}
         />
