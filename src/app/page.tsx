@@ -7,6 +7,7 @@ import RadialDeleteButton from '@/components/RadialDeleteButton';
 import FolderUpload from '@/components/FolderUpload';
 import MicRecordUpload from '@/components/MicRecordUpload';
 import { supabaseBrowser } from '@/lib/supabase';
+import { LandingView } from '@/components/landing/LandingView';
 import type {
   GrievanceRecord,
   GrievancesSummary,
@@ -117,9 +118,78 @@ export default function CivicPulsePage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
-  // Active Tab: SUBMIT | FEED | DONE | INSPECT
-  const [activeTab, setActiveTab] = useState<'SUBMIT' | 'FEED' | 'DONE' | 'INSPECT'>('SUBMIT');
+// Active Tab Type
+  type TabType = 'HOME' | 'SUBMIT' | 'FEED' | 'DONE' | 'INSPECT';
+  const [activeTab, setActiveTab] = useState<TabType>('HOME');
   const [feedViewMode, setFeedViewMode] = useState<'ACTIVE' | 'ALL'>('ACTIVE');
+
+  // Push-state navigation helper so browser back button & Alt + Left Arrow work
+  const navigateToTab = useCallback((tab: TabType, pushHistory = true) => {
+    setActiveTab(tab);
+    if (pushHistory && typeof window !== 'undefined') {
+      const url = tab === 'HOME' ? window.location.pathname : `?tab=${tab.toLowerCase()}`;
+      window.history.pushState({ tab }, '', url);
+    }
+  }, []);
+
+  // Synchronize browser history and popstate (Back / Forward / Alt + Left Arrow)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Set initial history state based on current URL or default to HOME
+    const params = new URLSearchParams(window.location.search);
+    const initialParam = params.get('tab');
+    if (initialParam === 'submit') {
+      setActiveTab('SUBMIT');
+      window.history.replaceState({ tab: 'SUBMIT' }, '', '?tab=submit');
+    } else if (initialParam === 'feed') {
+      setActiveTab('FEED');
+      window.history.replaceState({ tab: 'FEED' }, '', '?tab=feed');
+    } else if (initialParam === 'done') {
+      setActiveTab('DONE');
+      window.history.replaceState({ tab: 'DONE' }, '', '?tab=done');
+    } else if (initialParam === 'inspect') {
+      setActiveTab('INSPECT');
+      window.history.replaceState({ tab: 'INSPECT' }, '', '?tab=inspect');
+    } else {
+      window.history.replaceState({ tab: 'HOME' }, '', window.location.pathname);
+    }
+
+    const handlePopState = (e: PopStateEvent) => {
+      if (e.state && e.state.tab) {
+        setActiveTab(e.state.tab);
+      } else {
+        const currentParams = new URLSearchParams(window.location.search);
+        const tab = currentParams.get('tab');
+        if (tab === 'submit') setActiveTab('SUBMIT');
+        else if (tab === 'feed') setActiveTab('FEED');
+        else if (tab === 'done') setActiveTab('DONE');
+        else if (tab === 'inspect') setActiveTab('INSPECT');
+        else setActiveTab('HOME');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Intercept Alt + Left Arrow keyboard shortcut to ensure smooth navigation back to HOME
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && e.key === 'ArrowLeft') {
+        if (activeTab !== 'HOME') {
+          e.preventDefault();
+          if (window.history.length > 1) {
+            window.history.back();
+          } else {
+            navigateToTab('HOME');
+          }
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeTab, navigateToTab]);
 
   // Filter state for Tab 2
   const [filterDept, setFilterDept] = useState<string>('ALL');
@@ -630,6 +700,24 @@ export default function CivicPulsePage() {
     );
   }
 
+  if (activeTab === 'HOME') {
+    return (
+      <LandingView
+        onReportIssue={() => navigateToTab('SUBMIT')}
+        onExploreMap={() => navigateToTab('FEED')}
+        onPortalAccess={() => navigateToTab('INSPECT')}
+        totalReports={grievances.length > 0 ? `${grievances.length.toLocaleString()}` : '12,800+'}
+        resolvedRate={
+          grievances.length > 0
+            ? `${Math.round((resolvedCount / grievances.length) * 100)}%`
+            : '94%'
+        }
+        avgTriageSpeed="35m"
+        departmentsCount={4}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-canvas-pattern text-[#1C1A16] flex flex-col antialiased">
       {/* ─────────────────────────────────────────────────────────────
@@ -638,13 +726,17 @@ export default function CivicPulsePage() {
       <header className="bg-[#F4F2EA]/85 backdrop-blur-xl border-b border-[#E4E1D6] sticky top-0 z-40 transition-colors">
         <div className="max-w-7xl mx-auto px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
           {/* Brand mark */}
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-neutral-950 flex items-center justify-center text-white shadow-sm ring-1 ring-black/10">
+          <div
+            className="flex items-center gap-3 cursor-pointer group"
+            onClick={() => navigateToTab('HOME')}
+            title="Return to Homepage"
+          >
+            <div className="w-8 h-8 rounded-xl bg-neutral-950 flex items-center justify-center text-white shadow-sm ring-1 ring-black/10 group-hover:scale-105 transition-transform">
               <span className="font-bold text-sm tracking-tight">CP</span>
             </div>
             <div>
               <div className="font-semibold text-sm tracking-tight text-neutral-950 flex items-center gap-2">
-                <span>CivicPulse</span>
+                <span className="group-hover:text-neutral-700 transition">CivicPulse</span>
                 <span className="text-[10px] font-medium text-neutral-600 bg-[#EAE6DC] px-2 py-0.5 rounded-full border border-[#DFDACD]">
                   Global Triage
                 </span>
@@ -655,8 +747,16 @@ export default function CivicPulsePage() {
             </div>
           </div>
 
-          {/* Right Live Status Pill & Refresh */}
+          {/* Right Live Status Pill & Refresh & Home Navigation */}
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigateToTab('HOME')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E4E1D6] bg-white hover:bg-neutral-50 active:scale-95 text-xs font-semibold text-neutral-800 shadow-sm transition cursor-pointer"
+              title="Return to Public Homepage"
+            >
+              <span>← Home</span>
+            </button>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border border-[#E4E1D6] text-xs font-medium text-neutral-700 shadow-[0_1px_3px_rgba(40,35,25,0.02)]">
               <span
                 className={`w-2 h-2 rounded-full ${
@@ -813,7 +913,7 @@ export default function CivicPulsePage() {
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       type="button"
-                      onClick={() => setActiveTab('INSPECT')}
+                      onClick={() => navigateToTab('INSPECT')}
                       className="px-4 py-2 rounded-xl bg-neutral-950 hover:bg-neutral-800 text-white text-xs font-medium shadow-sm transition active:scale-95 cursor-pointer"
                     >
                       View Full Details
@@ -838,7 +938,7 @@ export default function CivicPulsePage() {
           <div className="bg-[#EAE6DC] backdrop-blur-md p-1.5 rounded-2xl flex items-center gap-1 border border-[#DFDACD] shadow-[inset_0_1px_3px_rgba(40,35,25,0.03)]">
             <button
               type="button"
-              onClick={() => setActiveTab('SUBMIT')}
+              onClick={() => navigateToTab('SUBMIT')}
               className={`flex-1 py-2 px-2 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                 activeTab === 'SUBMIT'
                   ? 'bg-white text-neutral-950 shadow-[0_2px_8px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] ring-1 ring-black/[0.04]'
@@ -851,7 +951,7 @@ export default function CivicPulsePage() {
 
             <button
               type="button"
-              onClick={() => setActiveTab('FEED')}
+              onClick={() => navigateToTab('FEED')}
               className={`flex-1 py-2 px-2 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                 activeTab === 'FEED'
                   ? 'bg-white text-neutral-950 shadow-[0_2px_8px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] ring-1 ring-black/[0.04]'
@@ -869,7 +969,7 @@ export default function CivicPulsePage() {
 
             <button
               type="button"
-              onClick={() => setActiveTab('DONE')}
+              onClick={() => navigateToTab('DONE')}
               className={`flex-1 py-2 px-2 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                 activeTab === 'DONE'
                   ? 'bg-white text-neutral-950 shadow-[0_2px_8px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] ring-1 ring-black/[0.04]'
@@ -889,7 +989,7 @@ export default function CivicPulsePage() {
 
             <button
               type="button"
-              onClick={() => setActiveTab('INSPECT')}
+              onClick={() => navigateToTab('INSPECT')}
               className={`flex-1 py-2 px-2 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                 activeTab === 'INSPECT'
                   ? 'bg-white text-neutral-950 shadow-[0_2px_8px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] ring-1 ring-black/[0.04]'
@@ -906,13 +1006,23 @@ export default function CivicPulsePage() {
           {/* TAB 1: REPORT ISSUE */}
           {activeTab === 'SUBMIT' && (
             <div className="bg-white rounded-2xl border border-neutral-200/90 p-6 shadow-sm space-y-5">
-              <div>
-                <h2 className="text-lg font-semibold tracking-tight text-neutral-950">
-                  Report a Civic Issue
-                </h2>
-                <p className="text-xs text-neutral-500 mt-1 leading-relaxed">
-                  Upload a photo, record a voice note, or describe the issue. Our AI automatically assesses severity and routes it to the right department.
-                </p>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold tracking-tight text-neutral-950">
+                    Report a Civic Issue
+                  </h2>
+                  <p className="text-xs text-neutral-500 mt-1 leading-relaxed">
+                    Upload a photo, record a voice note, or describe the issue. Our AI automatically assesses severity and routes it to the right department.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigateToTab('HOME')}
+                  className="px-3 py-1.5 rounded-xl border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-xs font-semibold text-neutral-700 transition cursor-pointer shrink-0 flex items-center gap-1 shadow-xs active:scale-95"
+                  title="Return to Homepage (Alt + Left Arrow)"
+                >
+                  <span>← Home</span>
+                </button>
               </div>
 
               <form onSubmit={handleSubmitTriage} className="space-y-5">
@@ -1165,7 +1275,7 @@ export default function CivicPulsePage() {
                         type="button"
                         onClick={() => {
                           setSelectedId(submissionResult.grievance.id);
-                          setActiveTab('INSPECT');
+                          navigateToTab('INSPECT');
                         }}
                         className="w-full py-2 px-3 rounded-lg bg-neutral-950 text-white text-xs font-medium hover:bg-neutral-800 transition cursor-pointer text-center"
                       >
@@ -1196,7 +1306,7 @@ export default function CivicPulsePage() {
                         type="button"
                         onClick={() => {
                           setSelectedId(submissionResult.grievance.id);
-                          setActiveTab('INSPECT');
+                          navigateToTab('INSPECT');
                         }}
                         className="w-full py-2 px-3 rounded-lg bg-neutral-950 text-white text-xs font-medium hover:bg-neutral-800 transition cursor-pointer text-center"
                       >
@@ -1304,7 +1414,7 @@ export default function CivicPulsePage() {
                         {resolvedCount > 0 && (
                           <button
                             type="button"
-                            onClick={() => setActiveTab('DONE')}
+                            onClick={() => navigateToTab('DONE')}
                             className="mt-2 py-2 px-4 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold transition cursor-pointer shadow-sm inline-flex items-center gap-1.5"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
@@ -1325,7 +1435,7 @@ export default function CivicPulsePage() {
                         key={g.id}
                         onClick={() => {
                           setSelectedId(g.id);
-                          setActiveTab('INSPECT');
+                          navigateToTab('INSPECT');
                         }}
                         className={`bg-white border rounded-2xl p-4 transition-all cursor-pointer card-hover-lift space-y-2.5 ${
                           isSelected
@@ -1464,7 +1574,7 @@ export default function CivicPulsePage() {
                         key={g.id}
                         onClick={() => {
                           setSelectedId(g.id);
-                          setActiveTab('INSPECT');
+                          navigateToTab('INSPECT');
                         }}
                         className={`bg-white border rounded-2xl p-4 transition-all cursor-pointer card-hover-lift space-y-3 relative overflow-hidden ${
                           isSelected
@@ -1524,7 +1634,7 @@ export default function CivicPulsePage() {
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedId(g.id);
-                              setActiveTab('INSPECT');
+                              navigateToTab('INSPECT');
                             }}
                             className="px-2.5 py-1 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-[11px] font-semibold transition cursor-pointer flex items-center gap-1"
                           >
@@ -1660,7 +1770,7 @@ export default function CivicPulsePage() {
                           type="button"
                           onClick={async () => {
                             await handlePatchGrievance(selectedGrievance.id, 'RESOLVE');
-                            setActiveTab('DONE');
+                            navigateToTab('DONE');
                           }}
                           disabled={patchingAction === 'RESOLVE'}
                           className="ml-auto py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-semibold transition cursor-pointer shadow-sm shimmer-btn flex items-center gap-1.5"
