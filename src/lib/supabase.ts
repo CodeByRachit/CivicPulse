@@ -52,6 +52,22 @@ export const supabaseBrowser: SupabaseClient = createClient(
 let cachedServiceAdmin: SupabaseClient | null = null;
 
 /**
+ * Extracts and decodes the JWT role payload to safeguard against using an 'anon' key
+ * where an elevated 'service_role' secret is required.
+ */
+function parseJwtRole(token: string): string | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const json = JSON.parse(Buffer.from(base64, 'base64').toString('utf-8'));
+    return json.role || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Administrative Supabase client with elevated Service Role privileges.
  * Strictly checks that execution is occurring within a server-side runtime,
  * validates the service role secret, and disables session persistence.
@@ -68,6 +84,15 @@ export function getSupabaseServiceAdmin(): SupabaseClient {
   if (!serviceRoleKey || serviceRoleKey.trim() === '') {
     throw new Error(
       'Missing SUPABASE_SERVICE_ROLE_KEY. Administrative server operations require a valid service role secret.'
+    );
+  }
+
+  const detectedRole = parseJwtRole(serviceRoleKey.trim());
+  if (detectedRole === 'anon') {
+    console.error(
+      '🚨 [CivicPulse Security Alert]: SUPABASE_SERVICE_ROLE_KEY is set to an ANON key instead of the secret SERVICE_ROLE key!\n' +
+      'Administrative database writes and storage uploads will fail or hit Postgres Row Level Security (RLS) policies.\n' +
+      'Please copy the secret "service_role" key from Supabase Dashboard -> Project Settings -> API and update SUPABASE_SERVICE_ROLE_KEY in your hosting environment variables (e.g. Render).'
     );
   }
 

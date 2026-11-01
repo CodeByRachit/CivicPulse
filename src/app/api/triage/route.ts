@@ -434,27 +434,35 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // Stage 1 — Parallel Storage Upload & Geospatial/Weather Enrichment
     const uploadPromise = (async () => {
       if (!mediaFile || !mediaBuffer) return null;
-      const ext = getFileExtension(mediaFile);
-      const filePath = `incidents/${Date.now()}-${crypto.randomUUID()}.${ext}`;
+      try {
+        const ext = getFileExtension(mediaFile);
+        const filePath = `incidents/${Date.now()}-${crypto.randomUUID()}.${ext}`;
 
-      const { error: uploadError } = await supabaseAdmin.storage
-        .from('grievance-media')
-        .upload(filePath, mediaBuffer, {
-          contentType: mediaFile.type,
-          upsert: false,
-        });
+        const { error: uploadError } = await supabaseAdmin.storage
+          .from('grievance-media')
+          .upload(filePath, mediaBuffer, {
+            contentType: mediaFile.type,
+            upsert: false,
+          });
 
-      if (uploadError) {
-        throw new Error(`Supabase Storage Upload Failed: ${uploadError.message}`);
+        if (uploadError) {
+          console.error(
+            `[Supabase Storage Upload Warning]: ${uploadError.message}. Proceeding with grievance triage without remote image upload.`
+          );
+          return null;
+        }
+
+        uploadedFilePath = filePath;
+        const { data: publicUrlData } = supabaseAdmin.storage
+          .from('grievance-media')
+          .getPublicUrl(filePath);
+
+        mediaPublicUrl = publicUrlData.publicUrl;
+        return { filePath, publicUrl: mediaPublicUrl };
+      } catch (err: any) {
+        console.error('[Supabase Storage Upload Exception]:', err?.message || err);
+        return null;
       }
-
-      uploadedFilePath = filePath;
-      const { data: publicUrlData } = supabaseAdmin.storage
-        .from('grievance-media')
-        .getPublicUrl(filePath);
-
-      mediaPublicUrl = publicUrlData.publicUrl;
-      return { filePath, publicUrl: mediaPublicUrl };
     })();
 
     const [uploadResult, verifiedAddress, weatherContext] = await Promise.all([
