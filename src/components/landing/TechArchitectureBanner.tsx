@@ -9,8 +9,6 @@ import {
   CloudRain,
   ShieldCheck,
   ArrowRight,
-  Activity,
-  Layers,
 } from 'lucide-react';
 
 interface TechArchitectureBannerProps {
@@ -23,7 +21,7 @@ const TECH_STACK = [
   {
     name: 'Next.js 16',
     role: 'App Router & Edge Handlers',
-    icon: <Cpu className="w-4 h-4 text-neutral-900" />,
+    icon: <Cpu className="w-4 h-4 text-emerald-600" />,
   },
   {
     name: 'Three.js & WebGL',
@@ -48,7 +46,7 @@ const TECH_STACK = [
   {
     name: 'HMAC-SHA256',
     role: 'Stateless Session Security',
-    icon: <ShieldCheck className="w-4 h-4 text-neutral-900" />,
+    icon: <ShieldCheck className="w-4 h-4 text-emerald-600" />,
   },
 ];
 
@@ -58,14 +56,14 @@ export function TechArchitectureBanner({
   onPortalAccess,
 }: TechArchitectureBannerProps) {
   return (
-    <section className="w-full max-w-6xl mx-auto px-6 py-12">
+    <section className="w-full max-w-6xl mx-auto px-6 py-10">
       {/* Tech Stack Badges Strip */}
-      <div className="rounded-3xl border border-[#E4E1D6] bg-white/90 backdrop-blur-md p-6 sm:p-8 shadow-xs mb-12">
+      <div className="rounded-3xl p-6 sm:p-8 mb-12 border border-zinc-200 bg-white shadow-xs">
         <div className="text-center mb-6">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 font-mono">
+          <span className="text-[10px] font-bold uppercase tracking-widest font-mono text-emerald-700">
             ENGINEERED WITH PRODUCTION-GRADE INFRASTRUCTURE
           </span>
-          <h3 className="text-base sm:text-lg font-bold text-neutral-950 mt-1">
+          <h3 className="text-base sm:text-lg font-bold mt-1 text-zinc-950">
             Modern Full-Stack Civic Architecture
           </h3>
         </div>
@@ -74,15 +72,15 @@ export function TechArchitectureBanner({
           {TECH_STACK.map((tech, idx) => (
             <div
               key={idx}
-              className="p-3.5 rounded-2xl bg-[#F8F6F0] border border-[#E4E1D6] flex flex-col items-center text-center hover:-translate-y-0.5 transition-transform"
+              className="p-3.5 rounded-2xl flex flex-col items-center text-center hover:-translate-y-0.5 transition-all border bg-zinc-50 border-zinc-200 hover:border-zinc-300"
             >
-              <div className="w-8 h-8 rounded-xl bg-white border border-[#E4E1D6] flex items-center justify-center shadow-2xs mb-2">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-2xs mb-2 border border-zinc-200 bg-white">
                 {tech.icon}
               </div>
-              <span className="text-xs font-bold text-neutral-950 block">
+              <span className="text-xs font-bold text-zinc-950">
                 {tech.name}
               </span>
-              <span className="text-[10px] text-neutral-500 mt-0.5 leading-snug">
+              <span className="text-[10px] text-zinc-500 mt-0.5 leading-tight">
                 {tech.role}
               </span>
             </div>
@@ -90,59 +88,57 @@ export function TechArchitectureBanner({
         </div>
       </div>
 
-      {/* High-Impact Final Call To Action Card */}
-      <div className="rounded-3xl bg-neutral-950 text-white p-8 sm:p-12 shadow-[0_20px_60px_rgba(0,0,0,0.18)] relative overflow-hidden text-center flex flex-col items-center">
-        {/* Ambient Glows */}
-        <div className="absolute -top-24 -left-24 w-72 h-72 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-teal-500/20 rounded-full blur-3xl pointer-events-none" />
+      {/* Primary Landing Page Call To Action Card */}
+      <div className="rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden shadow-sm border border-zinc-200 bg-zinc-50">
+        <div className="max-w-2xl mx-auto space-y-4 relative z-10">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border border-zinc-200 bg-white text-zinc-700 shadow-2xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+            <span>INSTANT PARTICIPATION • ZERO SIGNUP REQUIRED</span>
+          </div>
 
-        <div className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900/90 px-3.5 py-1 text-[11px] font-semibold tracking-wider text-emerald-400 mb-4 shadow-inner">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span>JOIN OVER 12,000 CITIZENS NATIONWIDE</span>
-        </div>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-zinc-950">
+            Ready to upgrade your city’s infrastructure?
+          </h2>
 
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight max-w-2xl leading-tight">
-          Ready to Make Your Neighborhood Smarter &amp; Safer?
-        </h2>
+          <p className="text-xs sm:text-sm text-zinc-600 max-w-lg mx-auto leading-relaxed">
+            Submit a live report in seconds with automated AI routing, or open the live geospatial workspace to track issues across your municipal sector.
+          </p>
 
-        <p className="mt-3 text-xs sm:text-sm text-neutral-300 max-w-lg leading-relaxed font-normal">
-          Capture photographic or voice evidence of any infrastructure defect. Watch the autonomous AI engine triage, dispatch, and track it until it is 100% resolved.
-        </p>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-3">
+            {onReportIssue && (
+              <button
+                type="button"
+                onClick={onReportIssue}
+                className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-xs sm:text-sm font-bold transition cursor-pointer active:scale-95 bg-zinc-950 hover:bg-zinc-800 text-white shadow-xs hover:shadow-md"
+              >
+                <span>Report an Issue (Free)</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              </button>
+            )}
 
-        <div className="mt-7 flex flex-wrap items-center justify-center gap-3.5 relative z-10">
-          {onReportIssue && (
-            <button
-              type="button"
-              onClick={onReportIssue}
-              className="inline-flex items-center gap-2 rounded-full bg-white text-neutral-950 hover:bg-neutral-100 px-6 py-2.5 text-xs sm:text-sm font-bold shadow-md transition-all active:scale-95 cursor-pointer"
-            >
-              <span>Submit First Report (Free)</span>
-              <ArrowRight className="w-3.5 h-3.5 text-neutral-950" />
-            </button>
-          )}
+            {onExploreMap && (
+              <button
+                type="button"
+                onClick={onExploreMap}
+                className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-xs sm:text-sm font-semibold transition cursor-pointer active:scale-95 border border-zinc-300 bg-white hover:bg-zinc-100 text-zinc-900 shadow-xs"
+              >
+                <span>Launch Live 3D Globe</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            )}
 
-          {onExploreMap && (
-            <button
-              type="button"
-              onClick={onExploreMap}
-              className="inline-flex items-center gap-2 rounded-full border border-neutral-700 bg-neutral-900/80 hover:bg-neutral-900 text-neutral-200 px-5 py-2.5 text-xs sm:text-sm font-semibold transition-all active:scale-95 cursor-pointer"
-            >
-              <span>Launch Live Triage Mesh</span>
-            </button>
-          )}
-
-          {onPortalAccess && (
-            <button
-              type="button"
-              onClick={onPortalAccess}
-              className="inline-flex items-center gap-1.5 rounded-full border border-neutral-800 hover:border-neutral-700 text-neutral-400 hover:text-white px-4 py-2.5 text-xs font-medium transition cursor-pointer"
-            >
-              <span>Authority Console</span>
-            </button>
-          )}
+            {onPortalAccess && (
+              <button
+                type="button"
+                onClick={onPortalAccess}
+                className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-xs sm:text-sm font-medium transition cursor-pointer text-zinc-600 hover:text-zinc-950"
+              >
+                <span>Authority Admin Portal</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </section>
   );
 }
-

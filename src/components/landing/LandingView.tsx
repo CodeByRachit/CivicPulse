@@ -54,18 +54,18 @@ export function LandingView({
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-canvas-pattern bg-[#F4F2EA] text-[#1C1A16] flex flex-col antialiased selection:bg-neutral-900 selection:text-white relative overflow-x-hidden scroll-smooth">
-      {/* Top Luxury Scroll Progress Indicator */}
+    <div className="min-h-screen w-full flex flex-col antialiased relative overflow-x-hidden scroll-smooth bg-white text-zinc-900 selection:bg-zinc-950 selection:text-white transition-colors duration-200">
+      {/* Top Scroll Progress Indicator */}
       <div className="fixed top-0 left-0 right-0 h-[2.5px] z-50 pointer-events-none bg-transparent">
         <div
-          className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500 transition-all duration-75 ease-out shadow-[0_0_8px_rgba(16,185,129,0.8)]"
+          className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 transition-all duration-75 ease-out shadow-[0_0_8px_rgba(16,185,129,0.8)]"
           style={{ width: `${scrollProgress}%` }}
         />
       </div>
 
       {/* Subtle Ambient Radial Glow */}
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_35%_at_50%_-5%,rgba(16,185,129,0.06),transparent_70%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_35%_at_50%_-5%,rgba(16,185,129,0.04),transparent_70%)]"
         aria-hidden="true"
       />
 
@@ -77,42 +77,48 @@ export function LandingView({
           currentUser={currentUser}
           onSignOut={onSignOut}
         />
-        <main className="flex-1 space-y-4">
+
+        <main className="flex-1">
+          {/* Compact 3D Digital Twin Hero Section */}
           <SplitHeroSection
             onReportIssue={onReportIssue}
             onExploreMap={onExploreMap}
           />
 
-          {/* Interactive Feature Deep-Dive */}
-          <div id="platform-features">
-            <PlatformFeatures onExploreFeatures={onExploreMap} />
-          </div>
+          {/* Core Feature Sections */}
+          <div className="relative z-30 space-y-14 lg:space-y-20 py-8">
+            {/* Interactive Feature Deep-Dive */}
+            <div id="platform-features">
+              <PlatformFeatures onExploreFeatures={onExploreMap} />
+            </div>
 
-          {/* 3-Step Process Breakdown */}
-          <div id="how-it-works">
-            <ProcessSteps />
-          </div>
+            {/* 3-Step Process Breakdown */}
+            <div id="how-it-works">
+              <ProcessSteps />
+            </div>
 
-          {/* Live Interactive AI Triage Simulator */}
-          <div id="ai-simulator">
-            <InteractiveTriagePreview
+            {/* Live Interactive AI Triage Simulator */}
+            <div id="ai-simulator">
+              <InteractiveTriagePreview
+                onReportIssue={onReportIssue}
+                onExploreMap={onExploreMap}
+              />
+            </div>
+
+            {/* Comprehensive FAQ Section */}
+            <div id="faq">
+              <FaqSection />
+            </div>
+
+            {/* Developer Architecture & Call to Action */}
+            <TechArchitectureBanner
               onReportIssue={onReportIssue}
               onExploreMap={onExploreMap}
+              onPortalAccess={onPortalAccess}
             />
           </div>
-
-          {/* Comprehensive FAQ Section */}
-          <div id="faq">
-            <FaqSection />
-          </div>
-
-          {/* Developer Architecture & Call to Action */}
-          <TechArchitectureBanner
-            onReportIssue={onReportIssue}
-            onExploreMap={onExploreMap}
-            onPortalAccess={onPortalAccess}
-          />
         </main>
+
         <StatsBanner
           totalReports={totalReports}
           resolvedRate={resolvedRate}

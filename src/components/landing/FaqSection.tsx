@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronDown, HelpCircle, Sparkles } from 'lucide-react';
+import { ChevronDown, HelpCircle } from 'lucide-react';
 
 interface FaqItem {
   question: string;
@@ -56,17 +56,17 @@ export function FaqSection() {
   };
 
   return (
-    <section className="w-full max-w-4xl mx-auto px-6 py-14">
+    <section className="w-full max-w-4xl mx-auto px-6 py-12">
       {/* Header */}
       <div className="text-center max-w-xl mx-auto mb-10">
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-[#DFDACD] bg-[#EAE6DC] px-3.5 py-1 text-[10px] font-semibold tracking-wider text-neutral-700 shadow-2xs mb-2">
-          <HelpCircle className="w-3.5 h-3.5 text-neutral-600" />
+        <div className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-[10px] font-semibold tracking-wider shadow-2xs mb-2 border border-zinc-200 bg-white text-zinc-700">
+          <HelpCircle className="w-3.5 h-3.5 text-emerald-500" />
           <span>EVERYTHING YOU NEED TO KNOW</span>
         </div>
-        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-950">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-950">
           Frequently Asked Questions
         </h2>
-        <p className="mt-2 text-xs sm:text-sm text-neutral-600">
+        <p className="mt-2 text-xs sm:text-sm text-zinc-600">
           Clear answers about how CivicPulse operates, from citizen privacy to automated municipal dispatch.
         </p>
       </div>
@@ -79,25 +79,24 @@ export function FaqSection() {
           return (
             <div
               key={idx}
-              className="rounded-2xl border border-[#E4E1D6] bg-white overflow-hidden shadow-xs transition-all duration-200"
+              className="rounded-2xl overflow-hidden transition-all duration-200 border border-zinc-200 bg-white shadow-2xs hover:border-zinc-300"
             >
               <button
                 type="button"
                 onClick={() => toggleIndex(idx)}
-                className="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 cursor-pointer hover:bg-[#F8F6F0]/60 transition-colors"
-                aria-expanded={isOpen}
+                className="w-full text-left p-5 flex items-center justify-between gap-4 cursor-pointer"
               >
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block mb-1 font-mono">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 font-mono">
                     {item.category}
                   </span>
-                  <span className="text-sm sm:text-base font-bold text-neutral-950 leading-snug">
+                  <h3 className="text-sm sm:text-base font-bold text-zinc-950">
                     {item.question}
-                  </span>
+                  </h3>
                 </div>
                 <div
-                  className={`w-7 h-7 rounded-xl bg-[#EAE6DC] flex items-center justify-center text-neutral-700 shrink-0 transition-transform duration-200 ${
-                    isOpen ? 'rotate-180 bg-neutral-950 text-white' : ''
+                  className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-transform duration-200 border border-zinc-200 bg-zinc-50 text-zinc-700 ${
+                    isOpen ? 'rotate-180 bg-zinc-950 text-white border-zinc-950' : ''
                   }`}
                 >
                   <ChevronDown className="w-4 h-4" />
@@ -105,7 +104,7 @@ export function FaqSection() {
               </button>
 
               {isOpen && (
-                <div className="px-4 sm:px-5 pb-5 pt-1 text-xs sm:text-sm text-neutral-600 leading-relaxed border-t border-[#F0ECE1]">
+                <div className="px-5 pb-5 pt-1 text-xs sm:text-sm leading-relaxed text-zinc-600 border-t border-zinc-100">
                   {item.answer}
                 </div>
               )}
@@ -116,4 +115,3 @@ export function FaqSection() {
     </section>
   );
 }
-

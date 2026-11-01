@@ -7,12 +7,10 @@ import {
   AlertCircle,
   Clock,
   MapPin,
-  CheckCircle2,
   CloudRain,
   Shield,
   ArrowRight,
   FileText,
-  Volume2,
   Camera,
 } from 'lucide-react';
 
@@ -109,7 +107,6 @@ interface InteractiveTriagePreviewProps {
 
 export function InteractiveTriagePreview({
   onReportIssue,
-  onExploreMap,
 }: InteractiveTriagePreviewProps) {
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>('pothole');
 
@@ -121,14 +118,14 @@ export function InteractiveTriagePreview({
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
         <div>
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-[#DFDACD] bg-[#EAE6DC] px-3 py-0.5 text-[10px] font-semibold tracking-wider text-neutral-700 shadow-2xs mb-2">
-            <Sparkles className="w-3 h-3 text-emerald-600" />
+          <div className="inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-[10px] font-semibold tracking-wider shadow-2xs mb-2 border border-zinc-200 bg-white text-emerald-700">
+            <Sparkles className="w-3 h-3 text-emerald-500" />
             <span>INTERACTIVE AI TRIAGE ENGINE SIMULATOR</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-950">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-950">
             See the AI Engine in Action
           </h2>
-          <p className="mt-1.5 text-xs sm:text-sm text-neutral-600 max-w-xl">
+          <p className="mt-1.5 text-xs sm:text-sm max-w-xl leading-relaxed text-zinc-600">
             Select an infrastructure crisis below to see how CivicPulse extracts evidence, diagnoses the defect, evaluates severity, and drafts the municipal work order in real time.
           </p>
         </div>
@@ -138,7 +135,7 @@ export function InteractiveTriagePreview({
           <button
             type="button"
             onClick={onReportIssue}
-            className="inline-flex items-center gap-2 self-start md:self-auto px-4 py-2 rounded-xl bg-neutral-950 hover:bg-neutral-800 text-white text-xs font-semibold shadow-sm transition active:scale-95 cursor-pointer"
+            className="inline-flex items-center gap-2 self-start md:self-auto px-4 py-2 rounded-xl text-xs font-semibold transition active:scale-95 cursor-pointer bg-zinc-950 hover:bg-zinc-800 text-white shadow-xs"
           >
             <span>Submit a Live Report</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -157,19 +154,23 @@ export function InteractiveTriagePreview({
               onClick={() => setSelectedScenarioId(scenario.id)}
               className={`p-3 rounded-2xl text-left border transition-all cursor-pointer ${
                 isSelected
-                  ? 'bg-white border-neutral-950 shadow-md ring-1 ring-black/10'
-                  : 'bg-white/80 hover:bg-white border-[#E4E1D6] hover:border-neutral-300'
+                  ? 'bg-white border-zinc-950 shadow-md ring-1 ring-black/10'
+                  : 'bg-white hover:bg-zinc-50 border-zinc-200 text-zinc-700 hover:text-zinc-950'
               }`}
             >
-              <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 truncate">
+              <div className="text-[10px] font-bold uppercase tracking-wider truncate text-zinc-500">
                 {scenario.department.split('&')[0]}
               </div>
-              <div className="text-xs font-bold text-neutral-950 truncate mt-0.5">
+              <div className="text-xs font-bold truncate mt-0.5 text-zinc-950">
                 {scenario.title.split(' ')[0]} {scenario.title.split(' ')[1]}
               </div>
               <div className="flex items-center gap-1 mt-2 text-[10px] font-mono">
-                <span className={scenario.severity >= 9 ? 'text-red-600 font-bold' : 'text-amber-600 font-bold'}>
-                  ★ {scenario.severity}/10
+                <span className="text-red-600 font-bold">
+                  ★ {scenario.severity}
+                </span>
+                <span className="text-zinc-400">•</span>
+                <span className="text-zinc-600">
+                  {scenario.sla.split(' ')[0]} SLA
                 </span>
               </div>
             </button>
@@ -177,154 +178,133 @@ export function InteractiveTriagePreview({
         })}
       </div>
 
-      {/* Interactive Simulation Display Card with 3D Tilt */}
-      <TiltCard3D maxTilt={4} glare={true} className="rounded-3xl">
-        <div className="rounded-3xl border border-[#E4E1D6] bg-white p-6 sm:p-8 shadow-[0_16px_50px_rgba(40,35,25,0.06)] space-y-6">
-          {/* Top Header Row of the Report */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-[#E4E1D6]">
+      {/* Simulator Display Card with 3D Tilt */}
+      <TiltCard3D maxTilt={5} glare={true} className="rounded-3xl">
+        <div className="rounded-3xl p-6 sm:p-8 space-y-6 border border-zinc-200 bg-white shadow-sm">
+          {/* Header Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-zinc-200">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-neutral-950 text-white">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border bg-zinc-100 text-zinc-800 border-zinc-300">
                   {activeScenario.department}
                 </span>
-                <span className="text-[10px] font-mono text-neutral-400">
+                <span className="text-xs text-zinc-400 font-mono">
                   {activeScenario.departmentCode}
                 </span>
-                {activeScenario.urgency === 'CRITICAL' && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800 border border-red-200 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" />
-                    <span>CRITICAL HAZARD</span>
-                  </span>
-                )}
               </div>
-              <h3 className="text-base sm:text-lg font-bold text-neutral-950">
+              <h3 className="text-base sm:text-lg font-bold text-zinc-950">
                 {activeScenario.title}
               </h3>
-              <div className="flex items-center gap-1 text-xs text-neutral-500">
-                <MapPin className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
-                <span>{activeScenario.location}</span>
-              </div>
             </div>
 
-            {/* Severity & SLA Pills */}
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <div className="text-[10px] text-neutral-400 font-medium uppercase">
-                  AI Severity Score
-                </div>
-                <div className="text-xl sm:text-2xl font-black text-neutral-950 flex items-baseline justify-end gap-1">
-                  <span>{activeScenario.severity}</span>
-                  <span className="text-xs text-neutral-400 font-normal">/ 10</span>
-                </div>
-              </div>
-
-              <div className="h-10 w-px bg-[#E4E1D6]" />
-
-              <div className="text-right">
-                <div className="text-[10px] text-neutral-400 font-medium uppercase">
-                  SLA Target
-                </div>
-                <div className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 mt-0.5 flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  <span>{activeScenario.sla}</span>
-                </div>
-              </div>
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border text-red-700 bg-red-50 border-red-200">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span>Severity: {activeScenario.severity} / 10</span>
+              </span>
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border text-emerald-800 bg-emerald-50 border-emerald-200">
+                <Clock className="w-3.5 h-3.5" />
+                <span>{activeScenario.sla}</span>
+              </span>
             </div>
           </div>
 
-          {/* 3-Column Diagnostic Details Grid */}
+          {/* Grid: Context & Evidence Extraction */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Column 1: Evidence Ingested */}
-            <div className="p-4 rounded-2xl bg-[#F8F6F0] border border-[#E4E1D6] space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-neutral-950">
-                <span className="flex items-center gap-1.5">
-                  <Camera className="w-4 h-4 text-neutral-700" />
-                  <span>Evidence Ingestion</span>
-                </span>
-                <span className="text-[10px] text-emerald-700 font-semibold">Verified</span>
+            {/* Location & GPS */}
+            <div className="p-4 rounded-2xl border border-zinc-200 bg-zinc-50 space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-600">
+                <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Geospatial Coordinates</span>
               </div>
-              <p className="text-xs text-neutral-600">
+              <p className="text-xs font-medium text-zinc-900">
+                {activeScenario.location}
+              </p>
+              <div className="text-[10px] text-zinc-500 font-mono">
+                Accuracy: ±1.8m (RTK Differential)
+              </div>
+            </div>
+
+            {/* Weather Telemetry */}
+            <div className="p-4 rounded-2xl border border-zinc-200 bg-zinc-50 space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-600">
+                <CloudRain className="w-3.5 h-3.5 text-sky-600" />
+                <span>Live Open-Meteo Telemetry</span>
+              </div>
+              <div className="flex items-center gap-3 text-xs font-bold text-zinc-900">
+                <span>{activeScenario.weather.temp}</span>
+                <span>•</span>
+                <span className="text-sky-600">{activeScenario.weather.rain}</span>
+                <span>•</span>
+                <span>{activeScenario.weather.wind}</span>
+              </div>
+              <div className="text-[10px] text-zinc-500">
+                Risk Factor: Rainfall Elevation Active
+              </div>
+            </div>
+
+            {/* Evidence Slot */}
+            <div className="p-4 rounded-2xl border border-zinc-200 bg-zinc-50 space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-600">
+                <Camera className="w-3.5 h-3.5 text-purple-600" />
+                <span>Intake Modality</span>
+              </div>
+              <p className="text-xs font-medium text-zinc-900">
                 {activeScenario.evidenceType}
               </p>
-              <div className="pt-2 border-t border-[#E4E1D6] flex items-center justify-between text-[11px] text-neutral-500">
-                <span>GPS Geotag:</span>
-                <span className="font-mono text-neutral-800">±1.4m Accuracy</span>
+              <div className="text-[10px] text-emerald-600 font-semibold">
+                ✓ Cryptographically Sealed &amp; Verified
               </div>
             </div>
+          </div>
 
-            {/* Column 2: Environmental Telemetry */}
-            <div className="p-4 rounded-2xl bg-[#F8F6F0] border border-[#E4E1D6] space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-neutral-950">
-                <span className="flex items-center gap-1.5">
-                  <CloudRain className="w-4 h-4 text-blue-600" />
-                  <span>Weather Telemetry</span>
+          {/* AI Reasoning & Work Order Draft */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            {/* AI Diagnosis */}
+            <div className="p-5 rounded-2xl border border-zinc-200 bg-white space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-zinc-950 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Multimodal AI Diagnosis Breakdown</span>
                 </span>
-                <span className="text-[10px] text-blue-700 font-semibold">Live Open-Meteo</span>
-              </div>
-              <div className="grid grid-cols-3 gap-1 pt-1 text-center font-mono text-[11px]">
-                <div>
-                  <span className="text-[9px] text-neutral-400 block">TEMP</span>
-                  <strong className="text-neutral-900">{activeScenario.weather.temp}</strong>
-                </div>
-                <div>
-                  <span className="text-[9px] text-neutral-400 block">RAIN</span>
-                  <strong className="text-blue-600">{activeScenario.weather.rain}</strong>
-                </div>
-                <div>
-                  <span className="text-[9px] text-neutral-400 block">WIND</span>
-                  <strong className="text-neutral-900">{activeScenario.weather.wind}</strong>
-                </div>
-              </div>
-            </div>
-
-            {/* Column 3: Citizen Protection */}
-            <div className="p-4 rounded-2xl bg-[#F8F6F0] border border-[#E4E1D6] space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-neutral-950">
-                <span className="flex items-center gap-1.5">
-                  <Shield className="w-4 h-4 text-amber-600" />
-                  <span>Privacy &amp; Security</span>
+                <span className="text-[10px] font-mono text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  98.4% Confidence
                 </span>
-                <span className="text-[10px] text-emerald-700 font-semibold">Encrypted</span>
               </div>
-              <p className="text-xs text-neutral-600">
-                Contact info encrypted with AES-256. Tamper-evident receipt generated.
+              <p className="text-xs leading-relaxed text-zinc-700">
+                {activeScenario.aiDiagnosis}
               </p>
-              <div className="pt-2 border-t border-[#E4E1D6] flex items-center justify-between text-[11px] text-neutral-500 font-mono">
-                <span>Receipt Hash:</span>
-                <span className="truncate max-w-[100px] text-neutral-800">0x7f4a...92b</span>
+            </div>
+
+            {/* Drafted Contractor Work Order */}
+            <div className="p-5 rounded-2xl border border-zinc-200 bg-white space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-zinc-950 flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-sky-500" />
+                  <span>Autonomous Work Order Draft</span>
+                </span>
+                <span className="text-[10px] font-mono text-zinc-600 bg-zinc-100 px-2 py-0.5 rounded-full border border-zinc-200">
+                  Auto-Dispatched
+                </span>
               </div>
+              <p className="text-xs leading-relaxed text-zinc-700">
+                {activeScenario.workOrderDraft}
+              </p>
             </div>
           </div>
 
-          {/* AI Root Cause Diagnosis Box */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-neutral-950 text-white space-y-2 relative overflow-hidden">
-            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Autonomous AI Defect Diagnosis &amp; Reasoning</span>
-            </div>
-            <p className="text-xs sm:text-sm text-neutral-200 leading-relaxed font-normal">
-              &quot;{activeScenario.aiDiagnosis}&quot;
-            </p>
-          </div>
-
-          {/* Official Work Order Draft Snippet */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-[#F8F6F0] border border-[#E4E1D6] space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-neutral-900 flex items-center gap-1.5">
-                <FileText className="w-4 h-4 text-neutral-700" />
-                <span>Official Municipal Work Order Draft</span>
-              </span>
-              <span className="text-[10px] font-mono text-neutral-500">
-                Contractor Ready
-              </span>
-            </div>
-            <p className="text-xs text-neutral-700 leading-relaxed font-mono">
-              {activeScenario.workOrderDraft}
-            </p>
+          {/* Bottom Security Seal */}
+          <div className="pt-2 flex items-center justify-between text-xs text-zinc-500 border-t border-zinc-200">
+            <span className="flex items-center gap-1.5">
+              <Shield className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Tamper-evident HMAC-SHA256 audit log attached</span>
+            </span>
+            <span className="font-mono text-[10px] text-zinc-400">
+              Latency: 480ms Triage Speed
+            </span>
           </div>
         </div>
       </TiltCard3D>
     </section>
   );
 }
-

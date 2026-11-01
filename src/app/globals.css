@@ -3,23 +3,23 @@
 
 @layer base {
   :root {
-    --background: #f4f2ea;
-    --foreground: #1c1a16;
+    --background: #ffffff;
+    --foreground: #18181b;
     --card: #ffffff;
     --card-foreground: #1c1a16;
-    --border: #e4e1d6;
+    --border: #e4e4e7;
     --muted: #eae6db;
     --muted-foreground: #6e6a5f;
   }
 
   * {
-    border-color: #e4e1d6;
+    border-color: #e4e4e7;
   }
 
   html,
   body {
-    background-color: #f4f2ea;
-    color: #1c1a16;
+    background-color: #ffffff;
+    color: #18181b;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -30,22 +30,22 @@
 
 /* Warm Linen / Cream Canvas Grid */
 .bg-canvas-pattern {
-  background-color: #f4f2ea;
+  background-color: #ffffff;
   background-image: radial-gradient(rgba(45, 38, 25, 0.055) 1px, transparent 1px);
   background-size: 22px 22px;
 }
 
 /* Warm Linen Theme Overrides */
 .bg-neutral-50 {
-  background-color: #f8f6f0 !important;
+  background-color: #fafafa !important;
 }
 
 .bg-neutral-100 {
-  background-color: #eae6db !important;
+  background-color: #f4f4f5 !important;
 }
 
 .border-neutral-200 {
-  border-color: #e4e1d6 !important;
+  border-color: #e4e4e7 !important;
 }
 
 /* Subtle Light Mode Scrollbars */
@@ -688,7 +688,7 @@
 .folder-upload-container .custom-file-upload {
   font-size: 11px;
   font-weight: 600;
-  color: #1c1a16;
+  color: #18181b;
   text-align: center;
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(8px);
@@ -709,7 +709,7 @@
 
 .folder-upload-container:hover .custom-file-upload {
   background: #ffffff;
-  border-color: #1c1a16;
+  border-color: #18181b;
   color: #000000;
   box-shadow: 0 6px 16px rgba(40, 35, 25, 0.1);
 }
@@ -873,7 +873,7 @@
 .mic-record-container .custom-mic-button {
   font-size: 11px;
   font-weight: 600;
-  color: #1c1a16;
+  color: #18181b;
   text-align: center;
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(8px);
@@ -894,7 +894,7 @@
 
 .mic-record-container:hover .custom-mic-button {
   background: #ffffff;
-  border-color: #1c1a16;
+  border-color: #18181b;
   color: #000000;
   box-shadow: 0 6px 16px rgba(40, 35, 25, 0.1);
 }
