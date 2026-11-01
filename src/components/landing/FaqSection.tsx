@@ -79,13 +79,14 @@ export function FaqSection() {
           return (
             <div
               key={idx}
-              className="rounded-2xl overflow-hidden transition-all duration-200 border border-zinc-200 bg-white shadow-2xs hover:border-zinc-300"
+              onClick={() => toggleIndex(idx)}
+              className={`group transition-all duration-300 cursor-pointer overflow-hidden ${
+                isOpen
+                  ? 'bg-white border border-zinc-300 border-l-4 border-l-emerald-500 rounded-2xl p-6 shadow-[0_8px_25px_-6px_rgba(0,0,0,0.07)]'
+                  : 'bg-white hover:bg-zinc-50/70 border border-zinc-200/80 hover:border-zinc-300 rounded-2xl px-6 py-5'
+              }`}
             >
-              <button
-                type="button"
-                onClick={() => toggleIndex(idx)}
-                className="w-full text-left p-5 flex items-center justify-between gap-4 cursor-pointer"
-              >
+              <div className="w-full text-left flex items-center justify-between gap-4">
                 <div className="space-y-1">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 font-mono">
                     {item.category}
@@ -95,19 +96,30 @@ export function FaqSection() {
                   </h3>
                 </div>
                 <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-transform duration-200 border border-zinc-200 bg-zinc-50 text-zinc-700 ${
-                    isOpen ? 'rotate-180 bg-zinc-950 text-white border-zinc-950' : ''
+                  className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    isOpen
+                      ? 'bg-zinc-950 text-white rotate-180 shadow-sm'
+                      : 'bg-zinc-100 text-zinc-500 group-hover:bg-zinc-200 group-hover:text-zinc-800'
                   }`}
                 >
                   <ChevronDown className="w-4 h-4" />
                 </div>
-              </button>
+              </div>
 
-              {isOpen && (
-                <div className="px-5 pb-5 pt-1 text-xs sm:text-sm leading-relaxed text-zinc-600 border-t border-zinc-100">
-                  {item.answer}
+              {/* Smooth CSS Grid Expand/Collapse Animation */}
+              <div
+                className={`grid transition-all duration-300 ease-in-out ${
+                  isOpen
+                    ? 'grid-rows-[1fr] opacity-100 mt-3 pt-3 border-t border-zinc-100'
+                    : 'grid-rows-[0fr] opacity-0 mt-0'
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <p className="text-xs sm:text-sm leading-relaxed text-zinc-600">
+                    {item.answer}
+                  </p>
                 </div>
-              )}
+              </div>
             </div>
           );
         })}

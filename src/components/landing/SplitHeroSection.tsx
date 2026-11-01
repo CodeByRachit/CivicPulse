@@ -134,7 +134,7 @@ export function SplitHeroSection({
             {/* Foreground HUD Grouped Closely Around 3D Perimeter */}
             <div className="relative z-20 pointer-events-none p-2 sm:p-4 flex flex-col justify-between h-full">
               {/* Unified Floating Top Header Dock: Cleanly Pinned at Top with Generous Breathing Room Above Towers */}
-              <div className="flex items-center justify-center w-full pointer-events-none pt-2 sm:pt-3">
+              <div className="flex items-center justify-center w-full pointer-events-none pt-3 sm:pt-4">
                 <div className="inline-flex items-center gap-2 sm:gap-3 p-1.5 px-3 sm:px-3.5 rounded-full bg-white/95 border border-zinc-200/90 shadow-md backdrop-blur-md pointer-events-auto">
                   {/* Status indicator */}
                   <div className="flex items-center gap-2 pr-2 sm:pr-3 border-r border-zinc-200">
