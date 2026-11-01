@@ -449,15 +449,15 @@ function EarthGlobeModel({
         </mesh>
       )}
 
-      {/* 3. Luminous Blue Atmospheric Scattering Halo - RAYCAST DISABLED */}
+      {/* 3. Luminous Atmospheric Scattering Halo - RAYCAST DISABLED */}
       <mesh raycast={() => null}>
-        <sphereGeometry args={[GLOBE_RADIUS + 0.08, 48, 48]} />
+        <sphereGeometry args={[GLOBE_RADIUS + 0.07, 48, 48]} />
         <meshBasicMaterial
           color="#38BDF8"
           transparent
-          opacity={0.2}
+          opacity={0.3}
           side={THREE.BackSide}
-          blending={THREE.AdditiveBlending}
+          blending={THREE.NormalBlending}
         />
       </mesh>
     </group>
@@ -710,21 +710,21 @@ function StableSatelliteInspector({
   };
 
   return (
-    <div className="relative w-full h-full rounded-2xl overflow-hidden bg-neutral-950">
+    <div className="relative w-full h-full rounded-2xl overflow-hidden bg-[#F4F2EA]">
       {/* Top Floating Controls Bar */}
       <div className="absolute top-4 left-4 right-4 z-[500] flex items-center justify-between gap-2 pointer-events-none">
         <div className="flex items-center gap-2 pointer-events-auto">
           <button
             type="button"
             onClick={handleReturnToGlobe}
-            className="bg-white/95 backdrop-blur-md border border-neutral-200/90 shadow-md hover:bg-neutral-100 px-3.5 py-1.5 rounded-full text-xs font-semibold text-neutral-900 transition cursor-pointer flex items-center gap-1.5 active:scale-95"
+            className="bg-white/95 backdrop-blur-md border border-[#E2DFD3] shadow-[0_2px_10px_rgba(40,35,25,0.06)] hover:bg-neutral-50 px-3.5 py-1.5 rounded-full text-xs font-semibold text-neutral-900 transition cursor-pointer flex items-center gap-1.5 active:scale-95"
           >
             <ArrowLeft className="w-3.5 h-3.5 text-neutral-700" />
             <span>← Return to 3D Globe</span>
           </button>
 
-          <div className="bg-black/80 backdrop-blur-md border border-neutral-700/80 shadow-md px-3.5 py-1.5 rounded-full text-xs text-neutral-200 font-medium hidden sm:flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <div className="bg-white/90 backdrop-blur-md border border-[#E2DFD3] shadow-[0_2px_10px_rgba(40,35,25,0.06)] px-3.5 py-1.5 rounded-full text-xs text-neutral-800 font-medium hidden sm:flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span>
               Satellite Focus: {targetCoords.lat.toFixed(4)}°N, {targetCoords.lng.toFixed(4)}°E (Zoom {currentZoom}x)
             </span>
@@ -732,8 +732,8 @@ function StableSatelliteInspector({
         </div>
 
         {/* 100m Deduplication Sector Badge */}
-        <div className="bg-black/80 backdrop-blur-md border border-neutral-700/80 shadow-md px-3 py-1.5 rounded-full text-xs text-sky-400 font-medium flex items-center gap-1.5 pointer-events-auto">
-          <div className="w-2 h-2 rounded-full border border-dashed border-sky-400" />
+        <div className="bg-white/90 backdrop-blur-md border border-[#E2DFD3] shadow-[0_2px_10px_rgba(40,35,25,0.06)] px-3 py-1.5 rounded-full text-xs text-sky-700 font-semibold flex items-center gap-1.5 pointer-events-auto">
+          <div className="w-2 h-2 rounded-full border border-dashed border-sky-500" />
           <span>100m PostGIS Radar Active</span>
         </div>
       </div>
@@ -879,10 +879,10 @@ export default function ThreeSpatialCanvas({
 
   // Otherwise, render photorealistic 3D Earth Globe
   return (
-    <div className="relative w-full h-full bg-[#030712] select-none overflow-hidden rounded-2xl">
+    <div className="relative w-full h-full bg-[#F4F2EA] select-none overflow-hidden rounded-2xl">
       {/* Top Floating View Switcher Bar */}
       <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between gap-2 pointer-events-none">
-        <div className="bg-white/95 backdrop-blur-md border border-neutral-200/90 shadow-md rounded-full px-3.5 py-1.5 text-xs font-medium text-neutral-800 flex items-center gap-2 pointer-events-auto">
+        <div className="bg-white/95 backdrop-blur-md border border-[#E2DFD3] shadow-[0_2px_12px_rgba(40,35,25,0.06)] rounded-full px-3.5 py-1.5 text-xs font-medium text-neutral-800 flex items-center gap-2 pointer-events-auto">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span className="font-semibold text-neutral-950">3D Earth Globe</span>
           <span className="text-neutral-400">•</span>
@@ -896,7 +896,7 @@ export default function ThreeSpatialCanvas({
           <button
             type="button"
             onClick={handleZoomFacing}
-            className="bg-white/95 backdrop-blur-md text-neutral-900 border border-neutral-200/90 hover:bg-neutral-100 shadow-md px-3.5 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 active:scale-95"
+            className="bg-white/95 backdrop-blur-md text-neutral-900 border border-[#E2DFD3] hover:bg-neutral-50 shadow-[0_2px_12px_rgba(40,35,25,0.06)] px-3.5 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 active:scale-95"
           >
             <ZoomIn className="w-3.5 h-3.5 text-sky-600" />
             <span>Zoom into Satellite View</span>
@@ -910,7 +910,7 @@ export default function ThreeSpatialCanvas({
         <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto animate-in fade-in zoom-in-95 duration-150">
           <div
             onClick={() => onSelectGrievance(hoveredGrievance)}
-            className="cursor-pointer bg-white/95 backdrop-blur-md text-neutral-900 border border-neutral-200/90 shadow-[0_12px_36px_rgba(0,0,0,0.25)] rounded-2xl p-3 select-none flex items-center gap-3 transition hover:scale-105"
+            className="cursor-pointer bg-white/95 backdrop-blur-md text-neutral-900 border border-[#E2DFD3] shadow-[0_12px_36px_rgba(40,35,25,0.12)] rounded-2xl p-3 select-none flex items-center gap-3 transition hover:scale-105"
           >
             <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
               hoveredGrievance.status === 'RESOLVED'
@@ -945,7 +945,7 @@ export default function ThreeSpatialCanvas({
       {/* Helpful Hint Overlay */}
       {!hoveredGrievance && (
         <div className="absolute top-14 left-1/2 -translate-x-1/2 z-10 pointer-events-none text-center">
-          <div className="bg-black/75 backdrop-blur-md border border-neutral-700/80 shadow-md rounded-full px-4 py-1.5 text-xs text-neutral-200">
+          <div className="bg-white/90 backdrop-blur-md border border-[#E2DFD3] shadow-[0_4px_20px_rgba(40,35,25,0.08)] rounded-full px-4 py-1.5 text-xs text-neutral-800 font-medium">
             💡 Click or double-click anywhere on Earth, or scroll inward to dive into satellite imagery
           </div>
         </div>
@@ -956,7 +956,7 @@ export default function ThreeSpatialCanvas({
         <button
           type="button"
           onClick={handleResetGlobe}
-          className="bg-white/95 backdrop-blur-md border border-neutral-200/90 shadow-md hover:bg-neutral-50 active:scale-95 rounded-full px-3.5 py-1.5 text-xs font-semibold text-neutral-800 transition cursor-pointer flex items-center gap-1.5"
+          className="bg-white/95 backdrop-blur-md border border-[#E2DFD3] shadow-[0_2px_10px_rgba(40,35,25,0.06)] hover:bg-neutral-50 active:scale-95 rounded-full px-3.5 py-1.5 text-xs font-semibold text-neutral-800 transition cursor-pointer flex items-center gap-1.5"
         >
           <RotateCcw className="w-3.5 h-3.5" />
           <span>Reset Globe</span>
@@ -965,10 +965,10 @@ export default function ThreeSpatialCanvas({
         <button
           type="button"
           onClick={() => setAutoRotate(!autoRotate)}
-          className={`backdrop-blur-md border shadow-md rounded-full px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
+          className={`backdrop-blur-md border shadow-[0_2px_10px_rgba(40,35,25,0.06)] rounded-full px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
             autoRotate
               ? 'bg-neutral-900 text-white border-neutral-900'
-              : 'bg-white/95 text-neutral-700 border-neutral-200 hover:bg-neutral-50'
+              : 'bg-white/95 text-neutral-700 border-[#E2DFD3] hover:bg-neutral-50'
           }`}
         >
           <span>Auto-Rotate: {autoRotate ? 'ON' : 'OFF'}</span>
@@ -980,13 +980,13 @@ export default function ThreeSpatialCanvas({
         camera={{ position: initialCameraPos, fov: 44 }}
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
       >
-        <color attach="background" args={['#030712']} />
+        <color attach="background" args={['#F4F2EA']} />
 
         {/* Balanced Studio Daylight Illumination */}
-        <ambientLight intensity={1.4} />
-        <directionalLight position={[12, 12, 12]} intensity={0.9} />
-        <directionalLight position={[-12, 12, -12]} intensity={0.7} />
-        <directionalLight position={[0, -12, 12]} intensity={0.5} />
+        <ambientLight intensity={1.5} />
+        <directionalLight position={[12, 14, 12]} intensity={1.0} />
+        <directionalLight position={[-12, 12, -12]} intensity={0.6} />
+        <directionalLight position={[0, -12, 12]} intensity={0.4} />
 
         {/* Orbit Controls with Smooth Damping - Immediately frees rotation on user touch */}
         <OrbitControls

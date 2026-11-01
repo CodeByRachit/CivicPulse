@@ -2,6 +2,10 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
+import SpeederLoader from '@/components/SpeederLoader';
+import RadialDeleteButton from '@/components/RadialDeleteButton';
+import FolderUpload from '@/components/FolderUpload';
+import MicRecordUpload from '@/components/MicRecordUpload';
 import { supabaseBrowser } from '@/lib/supabase';
 import type {
   GrievanceRecord,
@@ -13,6 +17,7 @@ import type {
   TriageRejectedResponse,
 } from '@/types/grievance';
 import {
+  Activity,
   AlertCircle,
   ArrowUpRight,
   Check,
@@ -26,6 +31,7 @@ import {
   Lock,
   MapPin,
   Mic,
+  PlusCircle,
   RotateCw,
   ShieldCheck,
   Sparkles,
@@ -43,9 +49,12 @@ const ThreeSpatialCanvas = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full min-h-[450px] bg-[#F8F9FA] flex flex-col items-center justify-center text-neutral-500 text-sm">
-        <div className="w-5 h-5 border-2 border-neutral-900 border-t-transparent rounded-full animate-spin mb-3" />
-        <span className="font-medium text-neutral-700">Loading 3D Map View...</span>
+      <div className="w-full h-full min-h-[450px] bg-[#F4F2EA] flex flex-col items-center justify-center p-6">
+        <SpeederLoader
+          compact
+          title="Loading 3D Earth Globe..."
+          subtitle="Calibrating photorealistic textures"
+        />
       </div>
     ),
   }
@@ -108,8 +117,9 @@ export default function CivicPulsePage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
-  // Active Tab: SUBMIT | FEED | INSPECT
-  const [activeTab, setActiveTab] = useState<'SUBMIT' | 'FEED' | 'INSPECT'>('SUBMIT');
+  // Active Tab: SUBMIT | FEED | DONE | INSPECT
+  const [activeTab, setActiveTab] = useState<'SUBMIT' | 'FEED' | 'DONE' | 'INSPECT'>('SUBMIT');
+  const [feedViewMode, setFeedViewMode] = useState<'ACTIVE' | 'ALL'>('ACTIVE');
 
   // Filter state for Tab 2
   const [filterDept, setFilterDept] = useState<string>('ALL');
@@ -176,9 +186,33 @@ export default function CivicPulsePage() {
     }
   }, [filterDept]);
 
+  // Manual refresh with pleasant minimum duration so user sees the speeder dispatch animation
+  const handleManualRefresh = async () => {
+    setIsSyncing(true);
+    const start = performance.now();
+    try {
+      await fetchGrievances();
+      const elapsed = performance.now() - start;
+      if (elapsed < 850) {
+        await new Promise((r) => setTimeout(r, 850 - elapsed));
+      }
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   // Initial load & Supabase Realtime WebSocket subscription + Geolocation lock
   useEffect(() => {
-    fetchGrievances();
+    const init = async () => {
+      const start = performance.now();
+      await fetchGrievances();
+      const elapsed = performance.now() - start;
+      if (elapsed < 800) {
+        await new Promise((r) => setTimeout(r, 800 - elapsed));
+      }
+      setIsLoading(false);
+    };
+    init();
 
     // Silently attempt to acquire user GPS coordinates if permitted
     if (typeof window !== 'undefined' && navigator.geolocation) {
@@ -516,13 +550,20 @@ export default function CivicPulsePage() {
     }
   };
 
-  // Derived KPIs: RESOLVED items immediately decrease active & urgent counts!
+  // Derived KPIs: Active vs Completed separation
   const activeGrievances = useMemo(
     () => grievances.filter((g) => g.status !== 'RESOLVED'),
     [grievances]
   );
+  const resolvedGrievances = useMemo(
+    () => grievances.filter((g) => g.status === 'RESOLVED'),
+    [grievances]
+  );
   const activeCount = activeGrievances.length;
-  const criticalCount = activeGrievances.filter((g) => g.urgency_level === 'CRITICAL').length;
+  const resolvedCount = resolvedGrievances.length;
+  const criticalCount = activeGrievances.filter(
+    (g) => g.urgency_level === 'CRITICAL' || (g.severity_score || 0) >= 8.0
+  ).length;
   const clusteredCount = grievances.filter((g) => g.status === 'CLUSTERED' || (g.upvotes && g.upvotes > 1)).length;
   const avgSeverity = activeCount > 0
     ? Number((activeGrievances.reduce((acc, g) => acc + (g.severity_score || 0), 0) / activeCount).toFixed(1))
@@ -572,31 +613,51 @@ export default function CivicPulsePage() {
     setTimeout(() => setCopiedWorkOrder(false), 2000);
   };
 
+  // Initial full-page speeder loading screen
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-canvas-pattern flex flex-col items-center justify-center p-6 antialiased">
+        <div className="w-full max-w-sm bg-white/95 backdrop-blur-2xl border border-[#E4E1D6] rounded-3xl p-8 shadow-[0_16px_50px_rgba(40,35,25,0.08)] flex flex-col items-center text-center">
+          <SpeederLoader
+            title="Initializing CivicPulse Mesh..."
+            subtitle="Loading autonomous global triage, satellite imagery & municipal records"
+          />
+          <div className="w-48 bg-[#EAE6DC] rounded-full h-1.5 mt-6 overflow-hidden">
+            <div className="bg-neutral-900 h-full rounded-full animate-pulse w-3/4" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#F8F9FA] text-[#0A0A0A] flex flex-col antialiased">
+    <div className="min-h-screen bg-canvas-pattern text-[#1C1A16] flex flex-col antialiased">
       {/* ─────────────────────────────────────────────────────────────
-          1. CLEAN TOP NAVIGATION BAR (Apple / Linear Aesthetic)
+          1. CLEAN FROSTED TOP NAVIGATION BAR (Apple / Linear Aesthetic)
          ───────────────────────────────────────────────────────────── */}
-      <header className="bg-white border-b border-neutral-200/80 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+      <header className="bg-[#F4F2EA]/85 backdrop-blur-xl border-b border-[#E4E1D6] sticky top-0 z-40 transition-colors">
+        <div className="max-w-7xl mx-auto px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
           {/* Brand mark */}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-neutral-950 flex items-center justify-center text-white shadow-sm">
+            <div className="w-8 h-8 rounded-xl bg-neutral-950 flex items-center justify-center text-white shadow-sm ring-1 ring-black/10">
               <span className="font-bold text-sm tracking-tight">CP</span>
             </div>
             <div>
-              <div className="font-semibold text-base tracking-tight text-neutral-950">
-                CivicPulse
+              <div className="font-semibold text-sm tracking-tight text-neutral-950 flex items-center gap-2">
+                <span>CivicPulse</span>
+                <span className="text-[10px] font-medium text-neutral-600 bg-[#EAE6DC] px-2 py-0.5 rounded-full border border-[#DFDACD]">
+                  Global Triage
+                </span>
               </div>
-              <div className="text-xs text-neutral-500 font-normal">
-                Public Infrastructure & Grievance Tracker
+              <div className="text-[11px] text-neutral-500 font-normal">
+                Autonomous Infrastructure Grievance Network
               </div>
             </div>
           </div>
 
           {/* Right Live Status Pill & Refresh */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-100/80 border border-neutral-200/60 text-xs font-medium text-neutral-700">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border border-[#E4E1D6] text-xs font-medium text-neutral-700 shadow-[0_1px_3px_rgba(40,35,25,0.02)]">
               <span
                 className={`w-2 h-2 rounded-full ${
                   realtimeStatus === 'SUBSCRIBED'
@@ -604,16 +665,16 @@ export default function CivicPulsePage() {
                     : 'bg-amber-500'
                 }`}
               />
-              <span>
-                {realtimeStatus === 'SUBSCRIBED' ? 'Live Updates Active' : 'Connecting...'}
+              <span className="text-[11px]">
+                {realtimeStatus === 'SUBSCRIBED' ? 'Realtime Mesh Active' : 'Connecting...'}
               </span>
             </div>
 
             <button
               type="button"
-              onClick={() => fetchGrievances()}
+              onClick={handleManualRefresh}
               disabled={isSyncing}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 active:scale-95 text-xs font-medium text-neutral-800 shadow-sm transition cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E4E1D6] bg-white hover:bg-neutral-50 active:scale-95 text-xs font-medium text-neutral-800 shadow-sm transition cursor-pointer"
             >
               <RotateCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
               <span>Refresh</span>
@@ -623,65 +684,86 @@ export default function CivicPulsePage() {
       </header>
 
       {/* ─────────────────────────────────────────────────────────────
-          2. SUMMARY KPI METRIC CARDS
+          2. SUMMARY KPI METRIC CARDS (High-Impact Minimalist Effects)
          ───────────────────────────────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto w-full px-6 pt-6">
+      <section className="max-w-7xl mx-auto w-full px-6 pt-5">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {/* Metric 1 */}
-          <div className="bg-white border border-neutral-200/90 rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between">
-            <div className="text-xs font-medium text-neutral-500">
-              Active Issues
+          {/* Metric 1: Active Issues */}
+          <div className="bg-white/95 backdrop-blur-xl border border-[#E4E1D6] rounded-2xl p-4 shadow-[0_4px_24px_rgba(40,35,25,0.02)] card-hover-lift flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-neutral-500">Active Issues</span>
+              <div className="w-6 h-6 rounded-lg bg-[#EAE6DC] flex items-center justify-center text-neutral-700">
+                <Activity className="w-3.5 h-3.5" />
+              </div>
             </div>
-            <div className="text-2xl font-semibold tracking-tight text-neutral-950 mt-2">
+            <div className="text-2xl font-bold tracking-tight text-neutral-950 mt-2">
               {isLoading ? '--' : activeCount}
             </div>
-            <div className="text-[11px] text-neutral-400 mt-1">
-              Currently open in system
+            <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 mt-1">
+              <span className={`w-1.5 h-1.5 rounded-full ${activeCount > 0 ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
+              <span>{activeCount > 0 ? 'In Field Pipeline' : 'All Cleared'}</span>
             </div>
           </div>
 
-          {/* Metric 2 */}
-          <div className="bg-white border border-neutral-200/90 rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between">
-            <div className="text-xs font-medium text-neutral-500">
-              Urgent Priority
+          {/* Metric 2: Urgent Priority */}
+          <div className="bg-white/95 backdrop-blur-xl border border-[#E4E1D6] rounded-2xl p-4 shadow-[0_4px_24px_rgba(40,35,25,0.02)] card-hover-lift flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-neutral-500">Urgent Priority</span>
+              <div className="w-6 h-6 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
+                <AlertCircle className="w-3.5 h-3.5" />
+              </div>
             </div>
-            <div className="text-2xl font-semibold tracking-tight text-neutral-950 mt-2 flex items-baseline gap-2">
+            <div className="text-2xl font-bold tracking-tight text-neutral-950 mt-2 flex items-baseline gap-2">
               <span>{isLoading ? '--' : criticalCount}</span>
               {criticalCount > 0 && (
-                <span className="text-[11px] font-medium text-neutral-900 bg-neutral-100 px-1.5 py-0.5 rounded-md">
+                <span className="text-[10px] font-semibold text-red-700 bg-red-100/90 px-2 py-0.5 rounded-full">
                   Requires Attention
                 </span>
               )}
             </div>
-            <div className="text-[11px] text-neutral-400 mt-1">
-              High danger severity index
+            <div className="text-[11px] text-neutral-500 mt-1">
+              {criticalCount > 0 ? 'Critical Defect Flags' : 'Zero High Risk'}
             </div>
           </div>
 
-          {/* Metric 3 */}
-          <div className="bg-white border border-neutral-200/90 rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between">
-            <div className="text-xs font-medium text-neutral-500">
-              Duplicate Reports Merged
+          {/* Metric 3: Completed / Done */}
+          <div className="bg-white/95 backdrop-blur-xl border border-[#E4E1D6] rounded-2xl p-4 shadow-[0_4px_24px_rgba(40,35,25,0.02)] card-hover-lift flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-neutral-500">Completed Works</span>
+              <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              </div>
             </div>
-            <div className="text-2xl font-semibold tracking-tight text-neutral-950 mt-2">
-              {isLoading ? '--' : clusteredCount}
+            <div className="text-2xl font-bold tracking-tight text-emerald-700 mt-2 flex items-baseline gap-2">
+              <span>{isLoading ? '--' : resolvedCount}</span>
+              {resolvedCount > 0 && (
+                <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-full glow-emerald">
+                  ✓ SLA Cleared
+                </span>
+              )}
             </div>
-            <div className="text-[11px] text-neutral-400 mt-1">
-              Grouped nearby community reports
+            <div className="text-[11px] text-neutral-500 mt-1">
+              {resolvedCount > 0 ? 'Verified & Resolved' : 'Pending Resolutions'}
             </div>
           </div>
 
-          {/* Metric 4 */}
-          <div className="bg-white border border-neutral-200/90 rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between">
-            <div className="text-xs font-medium text-neutral-500">
-              Average Severity
+          {/* Metric 4: AI Defect Severity */}
+          <div className="bg-white/95 backdrop-blur-xl border border-[#E4E1D6] rounded-2xl p-4 shadow-[0_4px_24px_rgba(40,35,25,0.02)] card-hover-lift flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-neutral-500">Severity Index</span>
+              <div className="w-6 h-6 rounded-lg bg-[#EAE6DC] text-neutral-700 flex items-center justify-center">
+                <Sparkles className="w-3.5 h-3.5" />
+              </div>
             </div>
-            <div className="text-2xl font-semibold tracking-tight text-neutral-950 mt-2 flex items-baseline">
+            <div className="text-2xl font-bold tracking-tight text-neutral-950 mt-2 flex items-baseline">
               <span>{isLoading ? '--' : avgSeverity.toFixed(1)}</span>
               <span className="text-sm font-normal text-neutral-400 ml-1">/ 10</span>
             </div>
-            <div className="text-[11px] text-neutral-400 mt-1">
-              Weather-calibrated defect rating
+            <div className="w-full bg-[#EAE6DC] rounded-full h-1.5 mt-2 overflow-hidden">
+              <div
+                className="bg-neutral-900 h-full rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, (avgSeverity / 10) * 100)}%` }}
+              />
             </div>
           </div>
         </div>
@@ -693,7 +775,7 @@ export default function CivicPulsePage() {
       <main className="max-w-7xl mx-auto w-full p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
         {/* LEFT COLUMN: Clean 3D Map Viewport (7 of 12 cols) */}
         <section className="lg:col-span-7 flex flex-col gap-3">
-          <div className="rounded-2xl border border-neutral-200 bg-[#F8F9FA] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] h-[640px] relative">
+          <div className="rounded-2xl border border-[#E4E1D6] bg-[#F4F2EA] overflow-hidden shadow-[0_8px_30px_rgba(40,35,25,0.04)] h-[640px] relative">
             <ThreeSpatialCanvas
               grievances={grievances}
               selectedId={selectedId}
@@ -704,7 +786,7 @@ export default function CivicPulsePage() {
             {/* Floating Bottom Card When An Issue Is Selected */}
             {selectedGrievance && (
               <div className="absolute bottom-4 left-4 right-4 z-20 pointer-events-auto">
-                <div className="bg-white/95 backdrop-blur-md border border-neutral-200/90 rounded-2xl p-4 shadow-[0_12px_36px_rgba(0,0,0,0.12)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="bg-white/95 backdrop-blur-xl border border-[#E4E1D6] rounded-2xl p-4 shadow-[0_12px_36px_rgba(40,35,25,0.08)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-neutral-900 text-white">
@@ -739,7 +821,7 @@ export default function CivicPulsePage() {
                     <button
                       type="button"
                       onClick={() => setSelectedId(null)}
-                      className="p-2 rounded-xl hover:bg-neutral-100 text-neutral-500 text-xs transition cursor-pointer"
+                      className="p-2 rounded-xl hover:bg-[#EAE6DC] text-neutral-500 text-xs transition cursor-pointer"
                     >
                       ✕
                     </button>
@@ -752,40 +834,72 @@ export default function CivicPulsePage() {
 
         {/* RIGHT COLUMN: User-Friendly Segmented Pill Panels (5 of 12 cols) */}
         <section className="lg:col-span-5 flex flex-col gap-4">
-          {/* Segmented Pill Tabs */}
-          <div className="bg-neutral-100 p-1 rounded-xl flex items-center gap-1 border border-neutral-200/60 shadow-inner">
+          {/* Segmented Pill Tabs (Apple / Linear Frosted Glass Style) */}
+          <div className="bg-[#EAE6DC] backdrop-blur-md p-1.5 rounded-2xl flex items-center gap-1 border border-[#DFDACD] shadow-[inset_0_1px_3px_rgba(40,35,25,0.03)]">
             <button
               type="button"
               onClick={() => setActiveTab('SUBMIT')}
-              className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all cursor-pointer ${
+              className={`flex-1 py-2 px-2 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                 activeTab === 'SUBMIT'
-                  ? 'bg-white text-neutral-950 shadow-sm'
-                  : 'text-neutral-600 hover:text-neutral-950'
+                  ? 'bg-white text-neutral-950 shadow-[0_2px_8px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] ring-1 ring-black/[0.04]'
+                  : 'text-neutral-500 hover:text-neutral-900 hover:bg-white/40'
               }`}
             >
-              Report Issue
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>Report</span>
             </button>
+
             <button
               type="button"
               onClick={() => setActiveTab('FEED')}
-              className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all cursor-pointer ${
+              className={`flex-1 py-2 px-2 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                 activeTab === 'FEED'
-                  ? 'bg-white text-neutral-950 shadow-sm'
-                  : 'text-neutral-600 hover:text-neutral-950'
+                  ? 'bg-white text-neutral-950 shadow-[0_2px_8px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] ring-1 ring-black/[0.04]'
+                  : 'text-neutral-500 hover:text-neutral-900 hover:bg-white/40'
               }`}
             >
-              Live Feed ({grievances.length})
+              <Activity className="w-3.5 h-3.5 text-neutral-500" />
+              <span>Live Feed</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                activeCount > 0 ? 'bg-neutral-900 text-white' : 'bg-neutral-200 text-neutral-600'
+              }`}>
+                {activeCount}
+              </span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('DONE')}
+              className={`flex-1 py-2 px-2 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                activeTab === 'DONE'
+                  ? 'bg-white text-neutral-950 shadow-[0_2px_8px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] ring-1 ring-black/[0.04]'
+                  : 'text-neutral-500 hover:text-neutral-900 hover:bg-white/40'
+              }`}
+            >
+              <CheckCircle2 className={`w-3.5 h-3.5 ${resolvedCount > 0 ? 'text-emerald-600' : 'text-neutral-400'}`} />
+              <span>Done</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                resolvedCount > 0
+                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300/70 glow-emerald'
+                  : 'bg-neutral-200 text-neutral-600'
+              }`}>
+                {resolvedCount}
+              </span>
+            </button>
+
             <button
               type="button"
               onClick={() => setActiveTab('INSPECT')}
-              className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all cursor-pointer ${
+              className={`flex-1 py-2 px-2 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                 activeTab === 'INSPECT'
-                  ? 'bg-white text-neutral-950 shadow-sm'
-                  : 'text-neutral-600 hover:text-neutral-950'
+                  ? 'bg-white text-neutral-950 shadow-[0_2px_8px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] ring-1 ring-black/[0.04]'
+                  : 'text-neutral-500 hover:text-neutral-900 hover:bg-white/40'
               }`}
             >
-              Issue Details {selectedGrievance ? '•' : ''}
+              <span>Details</span>
+              {selectedGrievance && (
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-500 ring-2 ring-sky-200 animate-pulse" />
+              )}
             </button>
           </div>
 
@@ -892,108 +1006,71 @@ export default function CivicPulsePage() {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Slot 1: Photo Evidence */}
-                    <div className="border border-dashed border-neutral-300 rounded-xl p-3 bg-neutral-50/80 hover:bg-neutral-100/60 transition min-h-[110px] flex flex-col justify-center">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
+                    {/* Slot 1: Photo Evidence with 3D Floating Folder & Radial Delete */}
+                    <div className="flex flex-col justify-center">
                       {!photoFile ? (
-                        <label className="flex flex-col items-center justify-center text-center cursor-pointer py-2">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handlePhotoChange}
-                            className="hidden"
-                          />
-                          <UploadCloud className="w-5 h-5 text-neutral-600 mb-1" />
-                          <span className="text-xs font-medium text-neutral-900">
-                            Upload Photo Evidence
-                          </span>
-                          <span className="text-[10px] text-neutral-400 mt-0.5">
-                            PNG, JPG, WebP (Up to 10MB)
-                          </span>
-                        </label>
+                        <FolderUpload
+                          onFileSelect={handlePhotoChange}
+                          label="Upload Photo Evidence"
+                        />
                       ) : (
-                        <div className="flex items-center gap-2.5">
+                        <div className="border border-[#E4E1D6] rounded-2xl p-3 bg-white/95 shadow-sm min-h-[126px] flex items-center gap-3 relative overflow-visible">
                           {photoPreviewUrl && (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={photoPreviewUrl}
                               alt="Photo preview"
-                              className="w-12 h-12 rounded-lg object-cover border border-neutral-200 shrink-0"
+                              className="w-14 h-14 rounded-xl object-cover border border-[#E4E1D6] shrink-0"
                             />
                           )}
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 pr-8">
                             <div className="text-xs font-semibold text-neutral-900 truncate">
                               {photoFile.name}
                             </div>
-                            <div className="text-[10px] text-emerald-600 font-medium mt-0.5">
+                            <div className="text-[10px] text-emerald-700 font-medium mt-0.5">
                               ✓ Photo Attached ({(photoFile.size / 1024).toFixed(0)} KB)
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            onClick={handleClearPhoto}
-                            className="p-1.5 rounded-lg hover:bg-neutral-200 text-neutral-400 hover:text-red-600 transition cursor-pointer"
-                            title="Remove photo"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="shrink-0">
+                            <RadialDeleteButton
+                              onDelete={handleClearPhoto}
+                              tooltipDelete="Delete Photo"
+                              tooltipCancel="Keep Photo"
+                            />
+                          </div>
                         </div>
                       )}
                     </div>
 
-                    {/* Slot 2: Voice Note Evidence */}
-                    <div className="border border-dashed border-neutral-300 rounded-xl p-3 bg-neutral-50/80 hover:bg-neutral-100/60 transition min-h-[110px] flex flex-col justify-center">
+                    {/* Slot 2: Voice Note Evidence with Matching 3D Floating Mic & Radial Delete */}
+                    <div className="flex flex-col justify-center">
                       {!voiceFile ? (
-                        <button
-                          type="button"
-                          onClick={handleToggleVoiceRecord}
-                          className={`flex flex-col items-center justify-center text-center cursor-pointer py-2 w-full rounded-lg transition ${
-                            isRecording ? 'bg-neutral-950 text-white' : 'text-neutral-900'
-                          }`}
-                        >
-                          {isRecording ? (
-                            <>
-                              <Square className="w-5 h-5 text-red-400 animate-pulse mb-1" />
-                              <span className="text-xs font-semibold text-white">
-                                Recording ({recordingSeconds}s)...
-                              </span>
-                              <span className="text-[10px] text-neutral-300 mt-0.5">
-                                Click to stop & attach
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <Mic className="w-5 h-5 text-neutral-600 mb-1" />
-                              <span className="text-xs font-medium text-neutral-900">
-                                Record Voice Note
-                              </span>
-                              <span className="text-[10px] text-neutral-400 mt-0.5">
-                                Describe verbally via microphone
-                              </span>
-                            </>
-                          )}
-                        </button>
+                        <MicRecordUpload
+                          isRecording={isRecording}
+                          recordingSeconds={recordingSeconds}
+                          onToggleRecord={handleToggleVoiceRecord}
+                        />
                       ) : (
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-10 h-10 rounded-lg bg-neutral-200 flex items-center justify-center shrink-0">
-                            <Volume2 className="w-5 h-5 text-neutral-800" />
+                        <div className="border border-[#E4E1D6] rounded-2xl p-3 bg-white/95 shadow-sm min-h-[126px] flex items-center gap-3 relative overflow-visible">
+                          <div className="w-14 h-14 rounded-xl bg-[#EAE6DC] border border-[#E4E1D6] flex items-center justify-center shrink-0 text-neutral-800">
+                            <Volume2 className="w-6 h-6" />
                           </div>
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 pr-8">
                             <div className="text-xs font-semibold text-neutral-900 truncate">
                               Voice Note ({recordingSeconds || 1}s)
                             </div>
                             {voicePreviewUrl && (
-                              <audio controls src={voicePreviewUrl} className="h-6 w-full mt-1" />
+                              <audio controls src={voicePreviewUrl} className="h-7 w-full mt-1.5" />
                             )}
                           </div>
-                          <button
-                            type="button"
-                            onClick={handleClearVoice}
-                            className="p-1.5 rounded-lg hover:bg-neutral-200 text-neutral-400 hover:text-red-600 transition cursor-pointer"
-                            title="Remove voice note"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="shrink-0">
+                            <RadialDeleteButton
+                              onDelete={handleClearVoice}
+                              tooltipDelete="Delete Audio"
+                              tooltipCancel="Keep Audio"
+                            />
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1145,44 +1222,100 @@ export default function CivicPulsePage() {
             </div>
           )}
 
-          {/* TAB 2: LIVE FEED */}
+          {/* TAB 2: LIVE FEED (Active Field Issues) */}
           {activeTab === 'FEED' && (
             <div className="space-y-3">
-              {/* Filter Pills */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-                {[
-                  { key: 'ALL', label: 'All Issues' },
-                  { key: 'PWD-ROADS', label: 'Roads' },
-                  { key: 'WATER-SAN', label: 'Water' },
-                  { key: 'ENV-POLL', label: 'Environment' },
-                  { key: 'ELEC-GRID', label: 'Electrical' },
-                ].map((f) => (
+              {/* Top View Mode & Filter Bar */}
+              <div className="flex items-center justify-between gap-2">
+                {/* Active vs All View Switcher */}
+                <div className="bg-neutral-100 p-1 rounded-xl flex items-center gap-1 border border-neutral-200/60 text-[11px] font-semibold">
                   <button
-                    key={f.key}
                     type="button"
-                    onClick={() => {
-                      setFilterDept(f.key);
-                      fetchGrievances(f.key);
-                    }}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition cursor-pointer shrink-0 ${
-                      filterDept === f.key
-                        ? 'bg-neutral-950 text-white shadow-sm'
-                        : 'bg-white border border-neutral-200 text-neutral-600 hover:text-neutral-900'
+                    onClick={() => setFeedViewMode('ACTIVE')}
+                    className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                      feedViewMode === 'ACTIVE'
+                        ? 'bg-white text-neutral-950 shadow-sm'
+                        : 'text-neutral-500 hover:text-neutral-900'
                     }`}
                   >
-                    {f.label}
+                    Active Only ({activeCount})
                   </button>
-                ))}
+                  <button
+                    type="button"
+                    onClick={() => setFeedViewMode('ALL')}
+                    className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                      feedViewMode === 'ALL'
+                        ? 'bg-white text-neutral-950 shadow-sm'
+                        : 'text-neutral-500 hover:text-neutral-900'
+                    }`}
+                  >
+                    All ({grievances.length})
+                  </button>
+                </div>
+
+                {/* Sector Department Filter Pills */}
+                <div className="flex items-center gap-1 overflow-x-auto text-xs">
+                  {[
+                    { key: 'ALL', label: 'All' },
+                    { key: 'PWD-ROADS', label: 'Roads' },
+                    { key: 'WATER-SAN', label: 'Water' },
+                    { key: 'ENV-POLL', label: 'Eco' },
+                    { key: 'ELEC-GRID', label: 'Power' },
+                  ].map((f) => (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => {
+                        setFilterDept(f.key);
+                        fetchGrievances(f.key);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition cursor-pointer shrink-0 ${
+                        filterDept === f.key
+                          ? 'bg-neutral-950 text-white shadow-sm'
+                          : 'bg-white border border-neutral-200/80 text-neutral-600 hover:text-neutral-900'
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Feed List */}
               <div className="space-y-3">
-                {grievances.length === 0 ? (
-                  <div className="bg-white rounded-2xl border border-neutral-200 p-8 text-center text-xs text-neutral-500">
-                    No active issues matching the selected filter.
-                  </div>
-                ) : (
-                  grievances.map((g) => {
+                {(() => {
+                  const itemsToDisplay =
+                    feedViewMode === 'ACTIVE'
+                      ? grievances.filter((g) => g.status !== 'RESOLVED')
+                      : grievances;
+
+                  if (itemsToDisplay.length === 0) {
+                    return (
+                      <div className="bg-white/90 backdrop-blur-md rounded-2xl border border-neutral-200/90 p-8 text-center text-xs text-neutral-500 space-y-3 shadow-sm">
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+                          <CheckCircle2 className="w-5 h-5" />
+                        </div>
+                        <div className="font-semibold text-neutral-950 text-sm">
+                          All Clear in this Sector
+                        </div>
+                        <p className="text-neutral-500 text-xs max-w-xs mx-auto">
+                          No active open issues reported. All local infrastructure is operating normally.
+                        </p>
+                        {resolvedCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab('DONE')}
+                            className="mt-2 py-2 px-4 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold transition cursor-pointer shadow-sm inline-flex items-center gap-1.5"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>View Completed Issues ({resolvedCount}) →</span>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return itemsToDisplay.map((g) => {
                     const isSelected = selectedId === g.id;
                     const isCritical =
                       (g.severity_score || 0) >= 8.0 || g.urgency_level === 'CRITICAL';
@@ -1194,24 +1327,25 @@ export default function CivicPulsePage() {
                           setSelectedId(g.id);
                           setActiveTab('INSPECT');
                         }}
-                        className={`bg-white border rounded-xl p-4 transition-all cursor-pointer card-hover-lift space-y-2.5 ${
+                        className={`bg-white border rounded-2xl p-4 transition-all cursor-pointer card-hover-lift space-y-2.5 ${
                           isSelected
                             ? 'border-neutral-950 shadow-md ring-1 ring-neutral-950'
-                            : 'border-neutral-200 hover:border-neutral-400 shadow-sm'
+                            : 'border-neutral-200/90 hover:border-neutral-400 shadow-sm'
                         }`}
                       >
                         {/* Top tag & status */}
                         <div className="flex items-center justify-between text-xs">
                           <div className="flex items-center gap-1.5">
-                            <span className="font-medium text-neutral-900 bg-neutral-100 px-2 py-0.5 rounded-md text-[11px]">
+                            <span className="font-semibold text-neutral-800 bg-neutral-100 px-2 py-0.5 rounded-md text-[10px]">
                               {getDepartmentLabel(g.department_code)}
                             </span>
                             {g.status === 'RESOLVED' ? (
-                              <span className="font-semibold text-emerald-800 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-md text-[10px]">
-                                ✓ Resolved
+                              <span className="font-semibold text-emerald-800 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-md text-[10px] flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                <span>Resolved</span>
                               </span>
                             ) : isCritical ? (
-                              <span className="font-semibold text-white bg-neutral-950 px-2 py-0.5 rounded-md text-[10px]">
+                              <span className="font-semibold text-white bg-red-600 px-2 py-0.5 rounded-md text-[10px]">
                                 Critical
                               </span>
                             ) : (
@@ -1221,7 +1355,7 @@ export default function CivicPulsePage() {
                             )}
                           </div>
 
-                          <span className="text-[11px] text-neutral-400 flex items-center gap-1">
+                          <span className="text-[11px] text-neutral-400 flex items-center gap-1 font-mono">
                             <Clock className="w-3 h-3" />
                             <span>{formatSlaFriendly(g.sla_deadline)}</span>
                           </span>
@@ -1243,8 +1377,8 @@ export default function CivicPulsePage() {
                         {/* Severity & Upvote Action */}
                         <div className="flex items-center justify-between pt-2 border-t border-neutral-100 text-xs">
                           <div className="flex items-center gap-2">
-                            <span className="text-neutral-500 text-[11px]">Severity:</span>
-                            <span className="font-semibold text-neutral-900">
+                            <span className="text-neutral-400 text-[11px]">Severity:</span>
+                            <span className="font-bold text-neutral-900">
                               {g.severity_score.toFixed(1)}/10
                             </span>
                           </div>
@@ -1260,6 +1394,141 @@ export default function CivicPulsePage() {
                           >
                             <span>▲</span>
                             <span>{g.upvotes} {g.upvotes === 1 ? 'Vote' : 'Votes'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: COMPLETED / DONE (Dedicated Resolution Archive) */}
+          {activeTab === 'DONE' && (
+            <div className="space-y-3">
+              {/* Top Filter Bar */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs font-semibold text-neutral-900 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>Completed Municipal Works</span>
+                </div>
+
+                <div className="flex items-center gap-1 overflow-x-auto text-xs">
+                  {[
+                    { key: 'ALL', label: 'All' },
+                    { key: 'PWD-ROADS', label: 'Roads' },
+                    { key: 'WATER-SAN', label: 'Water' },
+                    { key: 'ENV-POLL', label: 'Eco' },
+                    { key: 'ELEC-GRID', label: 'Power' },
+                  ].map((f) => (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => {
+                        setFilterDept(f.key);
+                        fetchGrievances(f.key);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition cursor-pointer shrink-0 ${
+                        filterDept === f.key
+                          ? 'bg-neutral-950 text-white shadow-sm'
+                          : 'bg-white border border-neutral-200/80 text-neutral-600 hover:text-neutral-900'
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Completed List */}
+              <div className="space-y-3">
+                {resolvedGrievances.length === 0 ? (
+                  <div className="bg-white/90 backdrop-blur-md rounded-2xl border border-neutral-200/90 p-8 text-center text-xs text-neutral-500 space-y-2 shadow-sm">
+                    <div className="w-10 h-10 rounded-2xl bg-neutral-100 flex items-center justify-center mx-auto text-neutral-500">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div className="font-semibold text-neutral-900 text-sm">
+                      No Completed Issues Yet
+                    </div>
+                    <p className="text-neutral-500 text-xs max-w-xs mx-auto">
+                      When field operations resolve open reports, they will be archived here with verification timestamps and closed work orders.
+                    </p>
+                  </div>
+                ) : (
+                  resolvedGrievances.map((g) => {
+                    const isSelected = selectedId === g.id;
+
+                    return (
+                      <div
+                        key={g.id}
+                        onClick={() => {
+                          setSelectedId(g.id);
+                          setActiveTab('INSPECT');
+                        }}
+                        className={`bg-white border rounded-2xl p-4 transition-all cursor-pointer card-hover-lift space-y-3 relative overflow-hidden ${
+                          isSelected
+                            ? 'border-emerald-600 shadow-md ring-1 ring-emerald-600'
+                            : 'border-neutral-200/90 hover:border-emerald-400/80 shadow-sm'
+                        }`}
+                      >
+                        {/* Sleek top emerald gradient line */}
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400" />
+
+                        <div className="flex items-center justify-between text-xs pt-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-emerald-800 bg-emerald-100/90 border border-emerald-300/80 px-2.5 py-0.5 rounded-full text-[10px] flex items-center gap-1 glow-emerald">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>Done & SLA Cleared</span>
+                            </span>
+                            <span className="font-medium text-neutral-700 bg-neutral-100 px-2 py-0.5 rounded-md text-[10px]">
+                              {getDepartmentLabel(g.department_code)}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-neutral-400 font-mono">
+                            Verified Resolved
+                          </span>
+                        </div>
+
+                        <div>
+                          <h3 className="font-semibold text-sm text-neutral-950 leading-snug">
+                            {g.title}
+                          </h3>
+                          <div className="text-xs text-neutral-500 mt-1 flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-neutral-400 shrink-0" />
+                            <span className="truncate">
+                              {g.address || `${g.lat.toFixed(4)}, ${g.lng.toFixed(4)}`}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Work order draft snippet */}
+                        {g.ai_reasoning_log?.official_work_order_draft && (
+                          <div className="p-2.5 rounded-xl bg-neutral-50 border border-neutral-200/70 text-[11px] text-neutral-600 line-clamp-2 font-mono">
+                            {g.ai_reasoning_log.official_work_order_draft}
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between pt-2 border-t border-neutral-100 text-xs">
+                          <div className="flex items-center gap-2 text-neutral-500 text-[11px]">
+                            <span>Severity:</span>
+                            <span className="font-medium text-neutral-700">
+                              {g.severity_score.toFixed(1)}/10
+                            </span>
+                            <span>•</span>
+                            <span>{g.upvotes || 1} Citizen Report{(g.upvotes || 1) > 1 ? 's' : ''} Cleared</span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedId(g.id);
+                              setActiveTab('INSPECT');
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-[11px] font-semibold transition cursor-pointer flex items-center gap-1"
+                          >
+                            <span>Inspect Details →</span>
                           </button>
                         </div>
                       </div>
@@ -1382,18 +1651,22 @@ export default function CivicPulsePage() {
                       )}
 
                       {selectedGrievance.status === 'RESOLVED' ? (
-                        <div className="ml-auto py-2 px-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold flex items-center gap-1.5">
+                        <div className="ml-auto py-2 px-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold flex items-center gap-1.5 glow-emerald">
                           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                          <span>Issue Resolved</span>
+                          <span>✓ Done & Verified</span>
                         </div>
                       ) : (
                         <button
                           type="button"
-                          onClick={() => handlePatchGrievance(selectedGrievance.id, 'RESOLVE')}
+                          onClick={async () => {
+                            await handlePatchGrievance(selectedGrievance.id, 'RESOLVE');
+                            setActiveTab('DONE');
+                          }}
                           disabled={patchingAction === 'RESOLVE'}
-                          className="ml-auto py-2 px-3.5 rounded-xl bg-neutral-950 hover:bg-neutral-800 text-white text-xs font-medium transition cursor-pointer shadow-sm active:scale-95"
+                          className="ml-auto py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-semibold transition cursor-pointer shadow-sm shimmer-btn flex items-center gap-1.5"
                         >
-                          {patchingAction === 'RESOLVE' ? 'Resolving...' : 'Mark Resolved'}
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>{patchingAction === 'RESOLVE' ? 'Resolving...' : 'Complete & Mark Done'}</span>
                         </button>
                       )}
                     </div>
@@ -1596,6 +1869,30 @@ export default function CivicPulsePage() {
           )}
         </section>
       </main>
+
+      {/* Realtime Manual Refresh Speeder Modal */}
+      {isSyncing && (
+        <div className="fixed inset-0 z-50 bg-black/25 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white/95 backdrop-blur-2xl border border-[#E4E1D6] rounded-3xl p-7 shadow-[0_20px_60px_rgba(40,35,25,0.14)] max-w-sm w-full flex flex-col items-center text-center">
+            <SpeederLoader
+              title="Syncing Telemetry & Live Feed..."
+              subtitle="Updating citizen reports, PostGIS clusters & weather radar"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Submission Triage Speeder Modal */}
+      {isSubmitting && (
+        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white/95 backdrop-blur-2xl border border-[#E4E1D6] rounded-3xl p-7 shadow-[0_20px_60px_rgba(40,35,25,0.16)] max-w-sm w-full flex flex-col items-center text-center">
+            <SpeederLoader
+              title="AI Autonomous Triage Active..."
+              subtitle="Calibrating severity, matching duplicates, and routing official work order"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
