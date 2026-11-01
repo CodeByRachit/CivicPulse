@@ -44,27 +44,39 @@ export function Navbar({
       </div>
 
       {/* Centre Navigation Links */}
-      <nav className="hidden md:flex items-center gap-8 text-xs font-medium text-neutral-600">
+      <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-xs font-medium text-neutral-600">
+        <a
+          href="#platform-features"
+          className="hover:text-neutral-950 transition-colors"
+        >
+          Capabilities
+        </a>
         <a
           href="#how-it-works"
           className="hover:text-neutral-950 transition-colors"
         >
           How It Works
         </a>
+        <a
+          href="#ai-simulator"
+          className="hover:text-neutral-950 transition-colors"
+        >
+          AI Simulator
+        </a>
+        <a
+          href="#faq"
+          className="hover:text-neutral-950 transition-colors"
+        >
+          FAQ
+        </a>
         <button
           type="button"
           onClick={onExploreMap}
           className="hover:text-neutral-950 transition-colors cursor-pointer flex items-center gap-1.5"
         >
-          <span>Live Map</span>
+          <span>Live Workspace</span>
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
         </button>
-        <a
-          href="#impact-stats"
-          className="hover:text-neutral-950 transition-colors"
-        >
-          Impact
-        </a>
       </nav>
 
       {/* Right Action Controls */}
