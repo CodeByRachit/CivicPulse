@@ -2129,18 +2129,6 @@ export default function CivicPulsePage() {
         </section>
       </main>
 
-      {/* Realtime Manual Refresh Speeder Modal */}
-      {isSyncing && (
-        <div className="fixed inset-0 z-50 bg-black/25 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white/95 backdrop-blur-2xl border border-[#E4E1D6] rounded-3xl p-7 shadow-[0_20px_60px_rgba(40,35,25,0.14)] max-w-sm w-full flex flex-col items-center text-center">
-            <SpeederLoader
-              title="Syncing Telemetry & Live Feed..."
-              subtitle="Updating citizen reports, PostGIS clusters & weather radar"
-            />
-          </div>
-        </div>
-      )}
-
       {/* Submission Triage Speeder Modal */}
       {isSubmitting && (
         <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
