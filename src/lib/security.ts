@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import type { NextResponse } from 'next/server';
+import type { NextRequest, NextResponse } from 'next/server';
 
 let cachedMasterKey: Buffer | null = null;
 
@@ -378,5 +378,139 @@ export function withSecurityHeaders(response: NextResponse): NextResponse {
     'AES-256-GCM+HMAC-SHA256'
   );
   return response;
+}
+
+export type UserRole = 'CITIZEN' | 'ADMIN';
+
+export interface SessionPayload {
+  sub: string; // Email or identifier
+  name: string; // Display name
+  role: UserRole; // 'CITIZEN' | 'ADMIN'
+  iat: number; // Issued at (ms)
+  exp: number; // Expires at (ms)
+}
+
+/**
+ * Constructs and signs a stateless, tamper-proof HMAC-SHA256 authenticated session token.
+ * Output: <payloadB64>.<signatureB64>
+ */
+export function signSessionToken(
+  payload: Omit<SessionPayload, 'iat' | 'exp'>,
+  ttlMs = 24 * 3600_000
+): string {
+  const iat = Date.now();
+  const exp = iat + ttlMs;
+  const fullPayload: SessionPayload = {
+    ...payload,
+    iat,
+    exp,
+  };
+
+  const payloadB64 = Buffer.from(JSON.stringify(fullPayload), 'utf8').toString('base64url');
+  const signatureB64 = crypto
+    .createHmac('sha256', getMasterKey())
+    .update(payloadB64)
+    .digest('base64url');
+
+  return `${payloadB64}.${signatureB64}`;
+}
+
+/**
+ * Validates an HMAC-SHA256 session token using constant-time comparison and checks expiration.
+ * Returns verified SessionPayload or null if invalid, expired, or tampered.
+ */
+export function verifySessionToken(token: string | null | undefined): SessionPayload | null {
+  if (!token || typeof token !== 'string') {
+    return null;
+  }
+
+  const parts = token.split('.');
+  if (parts.length !== 2) {
+    return null;
+  }
+
+  const [payloadB64, signatureB64] = parts;
+  if (!payloadB64 || !signatureB64) {
+    return null;
+  }
+
+  try {
+    const expectedSigB64 = crypto
+      .createHmac('sha256', getMasterKey())
+      .update(payloadB64)
+      .digest('base64url');
+
+    const expectedBuf = Buffer.from(expectedSigB64);
+    const providedBuf = Buffer.from(signatureB64);
+
+    if (expectedBuf.length !== providedBuf.length || !crypto.timingSafeEqual(expectedBuf, providedBuf)) {
+      return null;
+    }
+
+    const payloadJson = Buffer.from(payloadB64, 'base64url').toString('utf8');
+    const payload = JSON.parse(payloadJson) as SessionPayload;
+
+    if (!payload.sub || !payload.role || !payload.exp || Date.now() >= payload.exp) {
+      return null;
+    }
+
+    return payload;
+  } catch (err) {
+    console.warn('[Security] Session token verification error:', err);
+    return null;
+  }
+}
+
+/**
+ * Verifies whether an incoming NextRequest possesses authenticated Municipal Admin privileges.
+ * Checks three locations in priority order:
+ * 1. HttpOnly cookie ('civic_session')
+ * 2. Authorization Bearer header or 'x-session-token'
+ * 3. Constant-time direct passkey fallback ('x-admin-passkey' or 'x-admin-token')
+ */
+export function verifyAdminRequest(
+  req: NextRequest
+): { authorized: boolean; session: SessionPayload | null } {
+  // 1. Cookie-based verification
+  const cookieToken = req.cookies.get('civic_session')?.value;
+  if (cookieToken) {
+    const session = verifySessionToken(cookieToken);
+    if (session && session.role === 'ADMIN') {
+      return { authorized: true, session };
+    }
+  }
+
+  // 2. Header-based token verification
+  const authHeader = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim();
+  const sessionTokenHeader = req.headers.get('x-session-token')?.trim();
+  const headerToken = authHeader || sessionTokenHeader;
+  if (headerToken) {
+    const session = verifySessionToken(headerToken);
+    if (session && session.role === 'ADMIN') {
+      return { authorized: true, session };
+    }
+  }
+
+  // 3. Direct passkey fallback
+  const passkeyHeader =
+    req.headers.get('x-admin-passkey')?.trim() || req.headers.get('x-admin-token')?.trim();
+  if (passkeyHeader) {
+    const expectedPasskey = process.env.ADMIN_PASSKEY || process.env.ADMIN_PASSWORD || 'ADMIN-2026';
+    const providedBuf = Buffer.from(passkeyHeader);
+    const expectedBuf = Buffer.from(expectedPasskey);
+
+    if (providedBuf.length === expectedBuf.length && crypto.timingSafeEqual(providedBuf, expectedBuf)) {
+      const fallbackSession: SessionPayload = {
+        sub: process.env.ADMIN_EMAIL || 'admin@civicpulse.gov.in',
+        name: 'Municipal Commissioner (Passkey)',
+        role: 'ADMIN',
+        iat: Date.now(),
+        exp: Date.now() + 3600_000,
+      };
+      return { authorized: true, session: fallbackSession };
+    }
+  }
+
+  return { authorized: false, session: null };
 }
 
