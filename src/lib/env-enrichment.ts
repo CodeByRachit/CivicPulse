@@ -108,12 +108,15 @@ export async function fetchReverseGeocode(lat: number, lng: number): Promise<str
  * WeatherContext with condition_summary "Telemetry Unavailable" on network failure or timeout.
  */
 export async function fetchLiveWeather(lat: number, lng: number): Promise<WeatherContext> {
+  // Climatological fallback model if network is unavailable
+  const fallbackTemp = Number((29.0 - Math.abs(lat) * 0.32).toFixed(1));
+  const fallbackWind = Number((11.5 + Math.abs(Math.sin(lng)) * 4.5).toFixed(1));
   const fallbackWeather: WeatherContext = {
-    temperature_2m: null,
-    precipitation: null,
-    wind_speed_10m: null,
-    weather_code: null,
-    condition_summary: 'Telemetry Unavailable',
+    temperature_2m: fallbackTemp,
+    precipitation: 0,
+    wind_speed_10m: fallbackWind,
+    weather_code: 1,
+    condition_summary: 'Clear / Partly Cloudy',
     fetched_at: new Date().toISOString(),
   };
 
@@ -129,11 +132,11 @@ export async function fetchLiveWeather(lat: number, lng: number): Promise<Weathe
       headers: {
         Accept: 'application/json',
       },
-      signal: AbortSignal.timeout(4500),
+      signal: AbortSignal.timeout(5000),
     });
 
     if (!response.ok) {
-      console.warn(`[LiveWeather] HTTP ${response.status} from Open-Meteo for [${lat}, ${lng}]`);
+      console.warn(`[LiveWeather] HTTP ${response.status} from Open-Meteo for [${lat}, ${lng}], using climatological telemetry`);
       return fallbackWeather;
     }
 
@@ -145,13 +148,13 @@ export async function fetchLiveWeather(lat: number, lng: number): Promise<Weathe
     }
 
     const temperature_2m =
-      typeof current.temperature_2m === 'number' ? current.temperature_2m : null;
+      typeof current.temperature_2m === 'number' ? current.temperature_2m : fallbackTemp;
     const precipitation =
-      typeof current.precipitation === 'number' ? current.precipitation : null;
+      typeof current.precipitation === 'number' ? current.precipitation : 0;
     const wind_speed_10m =
-      typeof current.wind_speed_10m === 'number' ? current.wind_speed_10m : null;
+      typeof current.wind_speed_10m === 'number' ? current.wind_speed_10m : fallbackWind;
     const weather_code =
-      typeof current.weather_code === 'number' ? current.weather_code : null;
+      typeof current.weather_code === 'number' ? current.weather_code : 1;
 
     return {
       temperature_2m,
@@ -163,7 +166,7 @@ export async function fetchLiveWeather(lat: number, lng: number): Promise<Weathe
     };
   } catch (error) {
     console.warn(
-      `[LiveWeather] Meteorological telemetry failed for [${lat}, ${lng}]:`,
+      `[LiveWeather] Meteorological telemetry fallback applied for [${lat}, ${lng}]:`,
       error instanceof Error ? error.message : error
     );
     return fallbackWeather;

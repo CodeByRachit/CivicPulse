@@ -3,23 +3,23 @@
 
 @layer base {
   :root {
-    --background: #f8f9fa;
-    --foreground: #0a0a0a;
+    --background: #f4f2ea;
+    --foreground: #1c1a16;
     --card: #ffffff;
-    --card-foreground: #0a0a0a;
-    --border: #e5e7eb;
-    --muted: #f1f5f9;
-    --muted-foreground: #52525b;
+    --card-foreground: #1c1a16;
+    --border: #e4e1d6;
+    --muted: #eae6db;
+    --muted-foreground: #6e6a5f;
   }
 
   * {
-    border-color: #e5e7eb;
+    border-color: #e4e1d6;
   }
 
   html,
   body {
-    background-color: #f8f9fa;
-    color: #0a0a0a;
+    background-color: #f4f2ea;
+    color: #1c1a16;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -27,33 +27,87 @@
   }
 }
 
+/* Warm Linen / Cream Canvas Grid */
+.bg-canvas-pattern {
+  background-color: #f4f2ea;
+  background-image: radial-gradient(rgba(45, 38, 25, 0.055) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* Warm Linen Theme Overrides */
+.bg-neutral-50 {
+  background-color: #f8f6f0 !important;
+}
+
+.bg-neutral-100 {
+  background-color: #eae6db !important;
+}
+
+.border-neutral-200 {
+  border-color: #e4e1d6 !important;
+}
+
 /* Subtle Light Mode Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f8f9fa;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d4d4d8;
+  background: #d4cfc4;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a1a1aa;
+  background: #b5afa3;
 }
 
-/* Soft tactile transitions */
+/* Soft tactile card hover lift */
 .card-hover-lift {
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
 }
 
 .card-hover-lift:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.07);
+}
+
+/* Glowing accent effects for statuses */
+.glow-emerald {
+  box-shadow: 0 0 12px -1px rgba(16, 185, 129, 0.35);
+}
+
+.glow-amber {
+  box-shadow: 0 0 12px -1px rgba(245, 158, 11, 0.35);
+}
+
+.glow-blue {
+  box-shadow: 0 0 14px -1px rgba(56, 189, 248, 0.3);
+}
+
+/* Interactive button subtle shimmer */
+.shimmer-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+  transition: left 0.65s ease;
+}
+
+.shimmer-btn:hover::after {
+  left: 100%;
 }
 
 /* Leaflet Tile & Geometry Rules */
@@ -66,4 +120,789 @@
   font-family: inherit;
   outline: none;
 }
+
+/* =========================================================================
+   Uiverse.io Speeder Dispatch Loader by anand_4957
+   ========================================================================= */
+.speeder-wrap {
+  position: relative;
+}
+
+.speeder-stage {
+  position: relative;
+  width: 260px;
+  height: 110px;
+  overflow: hidden;
+}
+
+.speeder-stage .loader {
+  position: absolute;
+  top: 55%;
+  margin-left: -50px;
+  left: 50%;
+  animation: speeder 0.4s linear infinite;
+}
+
+.speeder-stage .loader > span {
+  height: 5px;
+  width: 35px;
+  background: #1c1a16;
+  position: absolute;
+  top: -19px;
+  left: 60px;
+  border-radius: 2px 10px 1px 0;
+}
+
+.speeder-stage .base span {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-right: 100px solid #1c1a16;
+  border-bottom: 6px solid transparent;
+}
+
+.speeder-stage .base span:before {
+  content: "";
+  height: 22px;
+  width: 22px;
+  border-radius: 50%;
+  background: #1c1a16;
+  position: absolute;
+  right: -110px;
+  top: -16px;
+}
+
+.speeder-stage .base span:after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-top: 0 solid transparent;
+  border-right: 55px solid #1c1a16;
+  border-bottom: 16px solid transparent;
+  top: -16px;
+  right: -98px;
+}
+
+.speeder-stage .face {
+  position: absolute;
+  height: 12px;
+  width: 20px;
+  background: #1c1a16;
+  border-radius: 20px 20px 0 0;
+  transform: rotate(-40deg);
+  right: -125px;
+  top: -15px;
+}
+
+.speeder-stage .face:after {
+  content: "";
+  height: 12px;
+  width: 12px;
+  background: #1c1a16;
+  right: 4px;
+  top: 7px;
+  position: absolute;
+  transform: rotate(40deg);
+  transform-origin: 50% 50%;
+  border-radius: 0 0 0 2px;
+}
+
+.speeder-stage .loader > span > span:nth-child(1),
+.speeder-stage .loader > span > span:nth-child(2),
+.speeder-stage .loader > span > span:nth-child(3),
+.speeder-stage .loader > span > span:nth-child(4) {
+  width: 30px;
+  height: 1px;
+  background: #1c1a16;
+  position: absolute;
+  animation: fazer1 0.2s linear infinite;
+}
+
+.speeder-stage .loader > span > span:nth-child(2) {
+  top: 3px;
+  animation: fazer2 0.4s linear infinite;
+}
+
+.speeder-stage .loader > span > span:nth-child(3) {
+  top: 1px;
+  animation: fazer3 0.4s linear infinite;
+  animation-delay: -1s;
+}
+
+.speeder-stage .loader > span > span:nth-child(4) {
+  top: 4px;
+  animation: fazer4 1s linear infinite;
+  animation-delay: -1s;
+}
+
+@keyframes fazer1 {
+  0% { left: 0; }
+  100% { left: -80px; opacity: 0; }
+}
+
+@keyframes fazer2 {
+  0% { left: 0; }
+  100% { left: -100px; opacity: 0; }
+}
+
+@keyframes fazer3 {
+  0% { left: 0; }
+  100% { left: -50px; opacity: 0; }
+}
+
+@keyframes fazer4 {
+  0% { left: 0; }
+  100% { left: -150px; opacity: 0; }
+}
+
+@keyframes speeder {
+  0% { transform: translate(2px, 1px) rotate(0deg); }
+  10% { transform: translate(-1px, -3px) rotate(-1deg); }
+  20% { transform: translate(-2px, 0px) rotate(1deg); }
+  30% { transform: translate(1px, 2px) rotate(0deg); }
+  40% { transform: translate(1px, -1px) rotate(1deg); }
+  50% { transform: translate(-1px, 3px) rotate(-1deg); }
+  60% { transform: translate(-1px, 1px) rotate(0deg); }
+  70% { transform: translate(3px, 1px) rotate(-1deg); }
+  80% { transform: translate(-2px, -1px) rotate(1deg); }
+  90% { transform: translate(2px, 1px) rotate(0deg); }
+  100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+
+.speeder-stage .longfazers {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.speeder-stage .longfazers span {
+  position: absolute;
+  height: 2px;
+  width: 20%;
+  background: #1c1a16;
+}
+
+.speeder-stage .longfazers span:nth-child(1) {
+  top: 20%;
+  animation: lf 0.6s linear infinite;
+  animation-delay: -5s;
+}
+
+.speeder-stage .longfazers span:nth-child(2) {
+  top: 40%;
+  animation: lf2 0.8s linear infinite;
+  animation-delay: -1s;
+}
+
+.speeder-stage .longfazers span:nth-child(3) {
+  top: 60%;
+  animation: lf3 0.6s linear infinite;
+}
+
+.speeder-stage .longfazers span:nth-child(4) {
+  top: 80%;
+  animation: lf4 0.5s linear infinite;
+  animation-delay: -3s;
+}
+
+@keyframes lf {
+  0% { left: 200%; }
+  100% { left: -200%; opacity: 0; }
+}
+
+@keyframes lf2 {
+  0% { left: 200%; }
+  100% { left: -200%; opacity: 0; }
+}
+
+@keyframes lf3 {
+  0% { left: 200%; }
+  100% { left: -100%; opacity: 0; }
+}
+
+@keyframes lf4 {
+  0% { left: 200%; }
+  100% { left: -100%; opacity: 0; }
+}
+
+/* =========================================================================
+   Uiverse.io Radial Menu Button by dexter-st (Theme Adapted for Delete)
+   ========================================================================= */
+@property --selected-angle {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 0deg;
+}
+
+.radial-delete-menu {
+  --options: 2;
+  --col-ring: #ffffff;
+  --col-btn-close: #6e6a5f;
+  --col-accent: rgb(239, 68, 68);
+  --button-size: 32px;
+  --option-size: 26px;
+  --icon-size: 14px;
+  --icon-col: #1c1a16;
+  --ring-thickness: 24px;
+  --ring-dist: 2px;
+  --duration: 0.4s;
+  --easing: cubic-bezier(0.22, 1, 0.36, 1.15);
+
+  --ring-radius: calc(
+    var(--button-size) / 2 + var(--ring-dist) + var(--ring-thickness) / 2
+  );
+  --outer-radius: calc(
+    var(--button-size) / 2 + var(--ring-dist) + var(--ring-thickness)
+  );
+  --selected: 1;
+  --selected-angle: calc(360deg / var(--options) * var(--selected));
+
+  position: relative;
+  width: var(--button-size);
+  height: var(--button-size);
+  isolation: isolate;
+  filter: drop-shadow(0 2px 5px rgba(40, 35, 25, 0.12));
+}
+
+.radial-delete-menu .btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  z-index: 2;
+  background-color: var(--col-ring);
+  background: radial-gradient(circle at 50% -100%, #ffffff88 0%, #0001 75%),
+    var(--col-accent);
+  box-shadow:
+    inset 0 -2px 1px #0002,
+    inset 0 4px 8px #fff6,
+    0 2px 4px rgba(40, 35, 25, 0.15);
+  transition: 0.25s ease;
+}
+
+.radial-delete-menu .btn .btn-svg {
+  width: 55%;
+  height: 55%;
+  color: white;
+  pointer-events: none;
+}
+
+.radial-delete-menu .btn .menu-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  appearance: none;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 5;
+}
+
+.radial-delete-menu .btn:hover {
+  background-color: color-mix(in oklab, var(--col-accent) 85%, white);
+}
+
+.radial-delete-menu .btn:active {
+  background-color: color-mix(in oklab, var(--col-accent) 75%, black);
+}
+
+.radial-delete-menu .btn .menu-input:focus-visible {
+  outline: 2px solid var(--col-accent);
+  outline-offset: 3px;
+}
+
+.radial-delete-menu .options {
+  position: absolute;
+  inset: calc(-1 * (var(--ring-thickness) + var(--ring-dist)));
+  border-radius: 50%;
+  color: white;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.radial-delete-menu .options .option {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--option-size);
+  height: var(--option-size);
+  left: 50%;
+  top: 50%;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  background-color: #ffffff;
+  border: 1px solid #e4e1d6;
+  box-shadow: 0 2px 8px rgba(40, 35, 25, 0.1);
+  transform: translate(-50%, -50%)
+    rotate(calc(360deg / var(--options) * var(--i))) translateY(0px);
+  transition:
+    transform var(--duration) var(--easing),
+    opacity 0.25s ease,
+    background-color 0.2s ease;
+  transition-delay: calc(var(--i) * 0.025s);
+}
+
+.radial-delete-menu .options .option .option-inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  transform: rotate(calc(-360deg / var(--options) * var(--i)));
+  pointer-events: none;
+}
+
+.radial-delete-menu .options .option .option-inner::after {
+  content: attr(data-tooltip);
+  --angle: calc(360deg / var(--options) * var(--i));
+  --tooltip-gap: 0.35rem;
+  --side: round(nearest, sin(var(--angle)), 1);
+  --vertical: round(nearest, cos(var(--angle)), 1);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  padding: 3px 8px;
+  background: #1c1a16;
+  color: #f4f2ea;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate(
+    calc(
+      -50% + var(--side) * (50% + var(--option-size) / 2 + var(--tooltip-gap))
+    ),
+    calc(
+      -50% - (1 - abs(var(--side))) * var(--vertical) * (50% +
+            var(--option-size) / 2 + var(--tooltip-gap))
+    )
+  );
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  z-index: 10;
+}
+
+.radial-delete-menu .options .option:hover .option-inner::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+.radial-delete-menu .options .option:hover {
+  background-color: #faf8f5;
+  transform: translate(-50%, -50%)
+    rotate(calc(360deg / var(--options) * var(--i)))
+    translateY(calc(-1 * var(--ring-radius))) scale(1.1);
+}
+
+.radial-delete-menu .menu-ring {
+  position: absolute;
+  inset: calc(-1 * (var(--ring-thickness) + var(--ring-dist)));
+  z-index: -1;
+  border-radius: 50%;
+  background-color: var(--col-ring);
+  border: 1px solid #e4e1d6;
+  mask: radial-gradient(
+    circle,
+    #0000 calc(var(--button-size) / 2 + var(--ring-dist)),
+    #000 calc(var(--button-size) / 2 + var(--ring-dist) + 1px),
+    #000 calc(var(--outer-radius) - 1px),
+    #0000 var(--outer-radius)
+  );
+  box-shadow: 0 4px 16px rgba(40, 35, 25, 0.08);
+  transform: scale(0);
+  opacity: 0;
+  transition:
+    transform var(--duration) var(--easing),
+    opacity 0.25s ease;
+}
+
+.radial-delete-menu .selector-light {
+  position: absolute;
+  inset: calc(-1 * (var(--ring-thickness) + var(--ring-dist)));
+  z-index: -1;
+  border-radius: 50%;
+  background-image: conic-gradient(
+    from calc(-180deg / var(--options)),
+    #0000 0deg,
+    var(--col-accent) 1deg,
+    var(--col-accent) calc(360deg / var(--options) - 1deg),
+    #0000 calc(360deg / var(--options))
+  );
+  mask: radial-gradient(
+    circle,
+    #0000 calc(var(--button-size) / 2 + var(--ring-dist)),
+    #000 calc(var(--button-size) / 2 + var(--ring-dist) + 1px),
+    #000 calc(var(--outer-radius) - 1px),
+    #0000 var(--outer-radius)
+  );
+  transform: rotate(var(--selected-angle)) scale(0);
+  opacity: 0;
+  transition:
+    transform var(--duration) var(--easing),
+    opacity 0.25s ease;
+}
+
+.radial-delete-menu .btn:has(.menu-input:checked) {
+  background-color: var(--col-btn-close);
+  background: var(--col-btn-close);
+}
+
+.radial-delete-menu:has(.menu-input:checked) .menu-ring {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.radial-delete-menu:has(.menu-input:checked) .selector-light {
+  transform: rotate(var(--selected-angle)) scale(1);
+  opacity: 0.25;
+}
+
+.radial-delete-menu:has(.menu-input:checked) .option {
+  transform: translate(-50%, -50%)
+    rotate(calc(360deg / var(--options) * var(--i)))
+    translateY(calc(-1 * var(--ring-radius)));
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.radial-delete-menu:not(:has(.menu-input:checked)) .option {
+  transition-delay: 0ms;
+}
+
+/* =========================================================================
+   Uiverse.io Floating 3D Folder Upload by 3bdel3ziz-T (Warm Linen Adapted)
+   ========================================================================= */
+.folder-upload-container {
+  --transition: 350ms;
+  --folder-W: 86px;
+  --folder-H: 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 12px 14px 10px 14px;
+  background: linear-gradient(135deg, #eae5d8 0%, #ded7c6 100%);
+  border: 1px solid #d4cfc4;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(40, 35, 25, 0.08);
+  height: 126px;
+  position: relative;
+  overflow: visible;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.folder-upload-container:hover {
+  box-shadow: 0 16px 36px rgba(40, 35, 25, 0.12);
+  border-color: #c4beaf;
+  transform: translateY(-2px);
+}
+
+.folder-upload-container .folder {
+  position: absolute;
+  top: 14px;
+  left: calc(50% - 43px);
+  animation: folder-float 2.5s infinite ease-in-out;
+  transition: transform var(--transition) ease;
+  pointer-events: none;
+}
+
+.folder-upload-container:hover .folder {
+  transform: scale(1.05);
+}
+
+.folder-upload-container .folder .front-side,
+.folder-upload-container .folder .back-side {
+  position: absolute;
+  transition: transform var(--transition);
+  transform-origin: bottom center;
+}
+
+.folder-upload-container .folder .back-side::before,
+.folder-upload-container .folder .back-side::after {
+  content: "";
+  display: block;
+  background-color: #ffffff;
+  border: 1px solid #e4e0d5;
+  opacity: 0.9;
+  width: var(--folder-W);
+  height: var(--folder-H);
+  position: absolute;
+  transform-origin: bottom center;
+  border-radius: 10px;
+  transition: transform 350ms;
+  box-shadow: 0 2px 8px rgba(40, 35, 25, 0.05);
+}
+
+.folder-upload-container:hover .back-side::before {
+  transform: rotateX(-5deg) skewX(5deg);
+}
+
+.folder-upload-container:hover .back-side::after {
+  transform: rotateX(-15deg) skewX(12deg);
+}
+
+.folder-upload-container .folder .front-side {
+  z-index: 1;
+}
+
+.folder-upload-container:hover .front-side {
+  transform: rotateX(-40deg) skewX(15deg);
+}
+
+.folder-upload-container .folder .tip {
+  background: linear-gradient(135deg, #2d2820, #1c1a16);
+  width: 50px;
+  height: 13px;
+  border-radius: 6px 6px 0 0;
+  box-shadow: 0 2px 6px rgba(40, 35, 25, 0.14);
+  position: absolute;
+  top: -6px;
+  left: 0;
+  z-index: 2;
+}
+
+.folder-upload-container .folder .cover {
+  background: linear-gradient(135deg, #faf7ee, #e8e2d4);
+  width: var(--folder-W);
+  height: var(--folder-H);
+  border: 1px solid #d4cec0;
+  box-shadow: 0 6px 18px rgba(40, 35, 25, 0.1);
+  border-radius: 10px;
+}
+
+.folder-upload-container .custom-file-upload {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1c1a16;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid #d4cfc4;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(40, 35, 25, 0.05);
+  cursor: pointer;
+  transition: all 0.22s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  padding: 8px 12px;
+  position: relative;
+  z-index: 3;
+}
+
+.folder-upload-container:hover .custom-file-upload {
+  background: #ffffff;
+  border-color: #1c1a16;
+  color: #000000;
+  box-shadow: 0 6px 16px rgba(40, 35, 25, 0.1);
+}
+
+@keyframes folder-float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0px); }
+}
+
+/* =========================================================================
+   3D Floating Mic Voice Record (Matching Luxury Linen & Floating Physics)
+   ========================================================================= */
+.mic-record-container {
+  --transition: 350ms;
+  --mic-size: 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 12px 14px 10px 14px;
+  background: linear-gradient(135deg, #eae5d8 0%, #ded7c6 100%);
+  border: 1px solid #d4cfc4;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(40, 35, 25, 0.08);
+  height: 126px;
+  position: relative;
+  overflow: visible;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mic-record-container:hover {
+  box-shadow: 0 16px 36px rgba(40, 35, 25, 0.12);
+  border-color: #c4beaf;
+  transform: translateY(-2px);
+}
+
+.mic-record-container.is-recording {
+  background: linear-gradient(135deg, #faece8 0%, #ebd7d0 100%);
+  border-color: #fca5a5;
+  box-shadow: 0 12px 30px rgba(239, 68, 68, 0.15);
+}
+
+.mic-record-container .mic-3d-stage {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--mic-size);
+  height: var(--mic-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.mic-record-container .mic-floating-device {
+  width: var(--mic-size);
+  height: var(--mic-size);
+  animation: mic-float 2.5s infinite ease-in-out;
+  transition: transform var(--transition) ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mic-record-container:hover .mic-floating-device {
+  transform: scale(1.06);
+}
+
+.mic-record-container .mic-outer-disc {
+  width: var(--mic-size);
+  height: var(--mic-size);
+  border-radius: 50%;
+  background: linear-gradient(135deg, #faf7ee, #e8e2d4);
+  border: 1px solid #d4cec0;
+  box-shadow: 0 6px 18px rgba(40, 35, 25, 0.12), inset 0 1px 2px rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.mic-record-container.is-recording .mic-outer-disc {
+  border-color: #f87171;
+  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.9);
+}
+
+.mic-record-container .mic-inner-rim {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ded8ca, #f5f2e8);
+  border: 1px solid #c8c2b3;
+  box-shadow: inset 0 2px 4px rgba(40, 35, 25, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.mic-record-container.is-recording .mic-inner-rim {
+  border-color: #fca5a5;
+  background: linear-gradient(135deg, #fee2e2, #fef2f2);
+}
+
+.mic-record-container .mic-core {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2d2820, #1c1a16);
+  box-shadow: 0 3px 8px rgba(40, 35, 25, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.mic-record-container.is-recording .mic-core {
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+}
+
+/* Concentric acoustic ripples when recording */
+.mic-record-container .mic-pulse-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(239, 68, 68, 0.45);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mic-record-container.is-recording .mic-pulse-ring.ring-1 {
+  animation: mic-ripple 1.8s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
+
+.mic-record-container.is-recording .mic-pulse-ring.ring-2 {
+  animation: mic-ripple 1.8s cubic-bezier(0, 0.2, 0.8, 1) infinite 0.9s;
+}
+
+@keyframes mic-ripple {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@keyframes mic-float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0px); }
+}
+
+.mic-record-container .custom-mic-button {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1c1a16;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid #d4cfc4;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(40, 35, 25, 0.05);
+  cursor: pointer;
+  transition: all 0.22s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  padding: 8px 12px;
+  position: relative;
+  z-index: 3;
+}
+
+.mic-record-container:hover .custom-mic-button {
+  background: #ffffff;
+  border-color: #1c1a16;
+  color: #000000;
+  box-shadow: 0 6px 16px rgba(40, 35, 25, 0.1);
+}
+
+.mic-record-container .custom-mic-button.recording-active {
+  background: #ffffff;
+  border-color: #ef4444;
+  color: #b91c1c;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.2);
+}
+
 
