@@ -13,6 +13,7 @@ import {
   encryptField,
   generateCryptographicReceipt,
   sanitizeCitizenInput,
+  verifyAdminRequest,
   verifyMediaMagicBytes,
   withSecurityHeaders,
 } from '@/lib/security';
@@ -954,47 +955,63 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
           { status: 200 }
         )
       );
-    } else if (action === 'DISPATCH') {
-      const { data: updatedGrievance, error: updateErr } = await supabaseAdmin
-        .from('grievances')
-        .update({ status: 'DISPATCHED' as GrievanceStatus })
-        .eq('id', id)
-        .select('*, departments(*)')
-        .single();
-
-      if (updateErr) {
-        return withSecurityHeaders(
-          NextResponse.json({ error: updateErr.message }, { status: 500 })
-        );
-      }
-
-      return withSecurityHeaders(
-        NextResponse.json(
-          { action: 'DISPATCH', grievance: cleanGrievance(updatedGrievance) },
-          { status: 200 }
-        )
-      );
     } else {
-      // action === 'RESOLVE'
-      const { data: updatedGrievance, error: updateErr } = await supabaseAdmin
-        .from('grievances')
-        .update({ status: 'RESOLVED' as GrievanceStatus })
-        .eq('id', id)
-        .select('*, departments(*)')
-        .single();
-
-      if (updateErr) {
+      // Security Enforcement: Municipal Admin verification for DISPATCH and RESOLVE
+      const authCheck = verifyAdminRequest(req);
+      if (!authCheck.authorized) {
         return withSecurityHeaders(
-          NextResponse.json({ error: updateErr.message }, { status: 500 })
+          NextResponse.json(
+            {
+              error:
+                'Forbidden: Only authenticated Municipal Admins can mark issues as resolved or dispatch work orders.',
+            },
+            { status: 403 }
+          )
         );
       }
 
-      return withSecurityHeaders(
-        NextResponse.json(
-          { action: 'RESOLVE', grievance: cleanGrievance(updatedGrievance) },
-          { status: 200 }
-        )
-      );
+      if (action === 'DISPATCH') {
+        const { data: updatedGrievance, error: updateErr } = await supabaseAdmin
+          .from('grievances')
+          .update({ status: 'DISPATCHED' as GrievanceStatus })
+          .eq('id', id)
+          .select('*, departments(*)')
+          .single();
+
+        if (updateErr) {
+          return withSecurityHeaders(
+            NextResponse.json({ error: updateErr.message }, { status: 500 })
+          );
+        }
+
+        return withSecurityHeaders(
+          NextResponse.json(
+            { action: 'DISPATCH', grievance: cleanGrievance(updatedGrievance) },
+            { status: 200 }
+          )
+        );
+      } else {
+        // action === 'RESOLVE'
+        const { data: updatedGrievance, error: updateErr } = await supabaseAdmin
+          .from('grievances')
+          .update({ status: 'RESOLVED' as GrievanceStatus })
+          .eq('id', id)
+          .select('*, departments(*)')
+          .single();
+
+        if (updateErr) {
+          return withSecurityHeaders(
+            NextResponse.json({ error: updateErr.message }, { status: 500 })
+          );
+        }
+
+        return withSecurityHeaders(
+          NextResponse.json(
+            { action: 'RESOLVE', grievance: cleanGrievance(updatedGrievance) },
+            { status: 200 }
+          )
+        );
+      }
     }
   } catch (error) {
     return withSecurityHeaders(

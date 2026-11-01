@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import SpeederLoader from '@/components/SpeederLoader';
 import RadialDeleteButton from '@/components/RadialDeleteButton';
 import FolderUpload from '@/components/FolderUpload';
@@ -29,16 +30,19 @@ import {
   ExternalLink,
   Layers,
   Lock,
+  LogOut,
   MapPin,
   Mic,
   PlusCircle,
   RotateCw,
+  Shield,
   ShieldCheck,
   Sparkles,
   Square,
   Thermometer,
   Trash2,
   UploadCloud,
+  User,
   Volume2,
   Wind,
 } from 'lucide-react';
@@ -158,6 +162,13 @@ export default function CivicPulsePage() {
   const [copiedWorkOrder, setCopiedWorkOrder] = useState<boolean>(false);
   const [patchingAction, setPatchingAction] = useState<string | null>(null);
 
+  // Authenticated User Session State
+  const [currentUser, setCurrentUser] = useState<{
+    email: string;
+    name: string;
+    role: 'CITIZEN' | 'ADMIN';
+  } | null>(null);
+
   // Fetch Grievances & KPI Summary
   const fetchGrievances = useCallback(async (dept = filterDept) => {
     try {
@@ -259,6 +270,78 @@ export default function CivicPulsePage() {
       if (voicePreviewUrl) URL.revokeObjectURL(voicePreviewUrl);
     };
   }, [photoPreviewUrl, voicePreviewUrl]);
+
+  // Session Hydration on Mount (GET /api/auth)
+  useEffect(() => {
+    // 1. Fast local cache hydration
+    try {
+      const cached = localStorage.getItem('civic_user');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        setCurrentUser(parsed);
+        if (parsed.email && !reporterContact) {
+          setReporterContact(parsed.email);
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    // 2. Verified backend session check
+    const checkSession = async () => {
+      try {
+        const token =
+          typeof window !== 'undefined'
+            ? localStorage.getItem('civic_session_token')
+            : null;
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const res = await fetch('/api/auth', {
+          method: 'GET',
+          credentials: 'include',
+          headers,
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.authenticated && data.user) {
+            setCurrentUser(data.user);
+            localStorage.setItem('civic_user', JSON.stringify(data.user));
+            if (data.user.email && !reporterContact) {
+              setReporterContact(data.user.email);
+            }
+          } else {
+            setCurrentUser(null);
+            localStorage.removeItem('civic_user');
+            localStorage.removeItem('civic_session_token');
+          }
+        }
+      } catch (err) {
+        console.warn('[Auth] Session check failed:', err);
+      }
+    };
+
+    checkSession();
+  }, []);
+
+  // Sign out handler (DELETE /api/auth)
+  const handleSignOut = async () => {
+    try {
+      await fetch('/api/auth', {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+    } catch (err) {
+      console.warn('[Auth] Sign out error:', err);
+    } finally {
+      localStorage.removeItem('civic_session_token');
+      localStorage.removeItem('civic_user');
+      setCurrentUser(null);
+    }
+  };
 
   // Selected Grievance record (with immediate fallback to submissionResult)
   const selectedGrievance = useMemo(() => {
@@ -573,9 +656,21 @@ export default function CivicPulsePage() {
   const handlePatchGrievance = async (id: string, action: 'UPVOTE' | 'DISPATCH' | 'RESOLVE') => {
     try {
       setPatchingAction(action);
+      const token =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('civic_session_token') || ''
+          : '';
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const res = await fetch('/api/triage', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers,
         body: JSON.stringify({ id, action }),
       });
 
@@ -655,9 +750,9 @@ export default function CivicPulsePage() {
             </div>
           </div>
 
-          {/* Right Live Status Pill & Refresh */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border border-[#E4E1D6] text-xs font-medium text-neutral-700 shadow-[0_1px_3px_rgba(40,35,25,0.02)]">
+          {/* Right Live Status Pill, Refresh & Auth Controls */}
+          <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border border-[#E4E1D6] text-xs font-medium text-neutral-700 shadow-[0_1px_3px_rgba(40,35,25,0.02)]">
               <span
                 className={`w-2 h-2 rounded-full ${
                   realtimeStatus === 'SUBSCRIBED'
@@ -679,6 +774,41 @@ export default function CivicPulsePage() {
               <RotateCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
               <span>Refresh</span>
             </button>
+
+            {/* Top Navigation Bar Auth Controls */}
+            {currentUser ? (
+              <div className="flex items-center gap-2">
+                {currentUser.role === 'ADMIN' ? (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-950 text-white text-xs font-semibold shadow-sm border border-neutral-800">
+                    <Shield className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span className="truncate max-w-[130px]">Admin: {currentUser.name}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-100 text-neutral-800 text-xs font-semibold border border-[#E4E1D6]">
+                    <User className="w-3.5 h-3.5 text-neutral-600 shrink-0" />
+                    <span className="truncate max-w-[130px]">Citizen: {currentUser.name}</span>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  title="Sign Out"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-[#E4E1D6] bg-white hover:bg-red-50 hover:text-red-600 hover:border-red-200 active:scale-95 text-xs font-medium text-neutral-700 shadow-sm transition cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Sign Out</span>
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-neutral-950 hover:bg-neutral-800 active:scale-95 text-xs font-semibold text-white shadow-sm transition cursor-pointer"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>Sign In / Admin Login</span>
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -1383,18 +1513,36 @@ export default function CivicPulsePage() {
                             </span>
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handlePatchGrievance(g.id, 'UPVOTE');
-                            }}
-                            disabled={patchingAction === 'UPVOTE'}
-                            className="px-2.5 py-1 rounded-lg border border-neutral-200 hover:border-neutral-900 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 text-xs font-medium transition cursor-pointer flex items-center gap-1"
-                          >
-                            <span>▲</span>
-                            <span>{g.upvotes} {g.upvotes === 1 ? 'Vote' : 'Votes'}</span>
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePatchGrievance(g.id, 'UPVOTE');
+                              }}
+                              disabled={patchingAction === 'UPVOTE'}
+                              className="px-2.5 py-1 rounded-lg border border-neutral-200 hover:border-neutral-900 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 text-xs font-medium transition cursor-pointer flex items-center gap-1"
+                            >
+                              <span>▲</span>
+                              <span>{g.upvotes} {g.upvotes === 1 ? 'Vote' : 'Votes'}</span>
+                            </button>
+
+                            {/* Admin Quick Resolve in Feed */}
+                            {currentUser?.role === 'ADMIN' && g.status !== 'RESOLVED' && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handlePatchGrievance(g.id, 'RESOLVE');
+                                }}
+                                disabled={patchingAction === 'RESOLVE'}
+                                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition cursor-pointer flex items-center gap-1 shadow-sm active:scale-95"
+                              >
+                                <CheckCircle2 className="w-3 h-3" />
+                                <span>Mark Resolved</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -1628,7 +1776,7 @@ export default function CivicPulsePage() {
                     </div>
 
                     {/* Operator Quick Status Actions */}
-                    <div className="flex items-center gap-2 pt-2 border-t border-neutral-100">
+                    <div className="flex items-center gap-2 pt-2 border-t border-neutral-100 flex-wrap">
                       <button
                         type="button"
                         onClick={() => handlePatchGrievance(selectedGrievance.id, 'UPVOTE')}
@@ -1639,23 +1787,27 @@ export default function CivicPulsePage() {
                         <span className="text-neutral-400">({selectedGrievance.upvotes})</span>
                       </button>
 
-                      {selectedGrievance.status !== 'DISPATCHED' && selectedGrievance.status !== 'RESOLVED' && (
-                        <button
-                          type="button"
-                          onClick={() => handlePatchGrievance(selectedGrievance.id, 'DISPATCH')}
-                          disabled={patchingAction === 'DISPATCH'}
-                          className="py-2 px-3 rounded-xl border border-neutral-200 hover:border-neutral-900 bg-white hover:bg-neutral-50 text-xs font-medium text-neutral-800 transition cursor-pointer"
-                        >
-                          Dispatch Work Order
-                        </button>
-                      )}
+                      {/* Dispatch Work Order: strictly ADMIN only */}
+                      {currentUser?.role === 'ADMIN' &&
+                        selectedGrievance.status !== 'DISPATCHED' &&
+                        selectedGrievance.status !== 'RESOLVED' && (
+                          <button
+                            type="button"
+                            onClick={() => handlePatchGrievance(selectedGrievance.id, 'DISPATCH')}
+                            disabled={patchingAction === 'DISPATCH'}
+                            className="py-2 px-3 rounded-xl border border-neutral-200 hover:border-neutral-900 bg-white hover:bg-neutral-50 text-xs font-medium text-neutral-800 transition cursor-pointer"
+                          >
+                            Dispatch Work Order
+                          </button>
+                        )}
 
+                      {/* Resolution Action */}
                       {selectedGrievance.status === 'RESOLVED' ? (
                         <div className="ml-auto py-2 px-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold flex items-center gap-1.5 glow-emerald">
                           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                           <span>✓ Done & Verified</span>
                         </div>
-                      ) : (
+                      ) : currentUser?.role === 'ADMIN' ? (
                         <button
                           type="button"
                           onClick={async () => {
@@ -1668,6 +1820,11 @@ export default function CivicPulsePage() {
                           <CheckCircle2 className="w-4 h-4" />
                           <span>{patchingAction === 'RESOLVE' ? 'Resolving...' : 'Complete & Mark Done'}</span>
                         </button>
+                      ) : (
+                        <div className="ml-auto text-[11px] text-neutral-400 flex items-center gap-1 py-1">
+                          <Lock className="w-3 h-3 text-neutral-400" />
+                          <span>Admin authorization required to resolve</span>
+                        </div>
                       )}
                     </div>
                   </div>
