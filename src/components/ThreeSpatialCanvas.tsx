@@ -2,12 +2,12 @@
 
 import React, { useRef, useState, useMemo, useEffect, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Html, Line } from '@react-three/drei';
+import { OrbitControls, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import type { GrievanceRecord } from '@/types/grievance';
 import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type * as LeafletType from 'leaflet';
-import { Globe, MapPin, ZoomIn, RotateCcw, Satellite, ArrowLeft, Crosshair } from 'lucide-react';
+import { Globe, MapPin, ZoomIn, RotateCcw, Satellite, ArrowLeft, CheckCircle2 } from 'lucide-react';
 
 export interface ThreeSpatialCanvasProps {
   grievances: GrievanceRecord[];
@@ -55,19 +55,20 @@ export function cartesianToLatLng(
 
 /**
  * 3D Pin on Globe Surface
+ * - Sleek, refined architectural needles (Apple/Linear proportions)
+ * - Proportional base rings (no giant continent-spanning circles)
  */
 function GlobePin({
   grievance,
   isSelected,
   onSelect,
-  onZoomToSatellite,
+  onHover,
 }: {
   grievance: GrievanceRecord;
   isSelected: boolean;
   onSelect: (g: GrievanceRecord) => void;
-  onZoomToSatellite: (lat: number, lng: number, g: GrievanceRecord) => void;
+  onHover: (g: GrievanceRecord | null) => void;
 }) {
-  const [hovered, setHovered] = useState(false);
   const ringRef = useRef<THREE.Group>(null);
 
   const isCritical =
@@ -85,16 +86,19 @@ function GlobePin({
     return new THREE.Quaternion().setFromUnitVectors(up, normal);
   }, [x, y, z]);
 
-  const height = Math.max(0.35, Math.min(1.2, (grievance.severity_score || 3.0) * 0.11));
-  const pinRadius = 0.035;
-  const beadRadius = 0.08;
+  // Scaled down: refined architectural needles instead of giant telephone poles
+  const height = isResolved
+    ? 0.06
+    : Math.max(0.07, Math.min(0.2, (grievance.severity_score || 3.0) * 0.02));
+  const pinRadius = 0.009;
+  const beadRadius = 0.024;
 
   const upvotes = grievance.upvotes || 1;
-  const clusterBaseRadius = Math.min(0.35, 0.12 + (upvotes - 1) * 0.04);
+  const clusterBaseRadius = Math.min(0.06, 0.025 + (upvotes - 1) * 0.008);
 
   useFrame(({ clock }) => {
-    if (ringRef.current && (isCritical || isSelected)) {
-      const pulse = 1.0 + Math.sin(clock.elapsedTime * 3) * 0.16;
+    if (ringRef.current && (isCritical || isSelected) && !isResolved) {
+      const pulse = 1.0 + Math.sin(clock.elapsedTime * 3) * 0.15;
       ringRef.current.scale.set(pulse, pulse, pulse);
     }
   });
@@ -108,26 +112,26 @@ function GlobePin({
   const beaconPoints = useMemo<[number, number, number][]>(() => {
     return [
       [0, height, 0],
-      [0, height + 1.2, 0],
+      [0, height + 0.16, 0],
     ];
   }, [height]);
 
   return (
     <group position={[x, y, z]} quaternion={orientation}>
       {/* Base Cluster Ring on Surface */}
-      <group ref={ringRef} position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <group ref={ringRef} position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <mesh>
-          <ringGeometry args={[clusterBaseRadius * 0.82, clusterBaseRadius, 32]} />
+          <ringGeometry args={[clusterBaseRadius * 0.75, clusterBaseRadius, 32]} />
           <meshBasicMaterial
-            color={isCritical || isSelected ? '#FFFFFF' : '#38BDF8'}
+            color={isResolved ? '#94A3B8' : isCritical || isSelected ? '#FFFFFF' : '#38BDF8'}
             transparent
-            opacity={isResolved ? 0.3 : 0.85}
+            opacity={isResolved ? 0.2 : 0.85}
             side={THREE.DoubleSide}
           />
         </mesh>
       </group>
 
-      {/* Pin Stem */}
+      {/* Pin Stem Needle */}
       <mesh
         position={[0, height / 2, 0]}
         onClick={(e) => {
@@ -136,9 +140,9 @@ function GlobePin({
         }}
         onPointerOver={(e) => {
           e.stopPropagation();
-          setHovered(true);
+          onHover(grievance);
         }}
-        onPointerOut={() => setHovered(false)}
+        onPointerOut={() => onHover(null)}
       >
         <cylinderGeometry args={[pinRadius, pinRadius, height, 16]} />
         <meshStandardMaterial
@@ -146,7 +150,7 @@ function GlobePin({
           roughness={0.15}
           metalness={0.35}
           transparent={isResolved}
-          opacity={isResolved ? 0.45 : 1.0}
+          opacity={isResolved ? 0.4 : 1.0}
         />
       </mesh>
 
@@ -159,77 +163,39 @@ function GlobePin({
         }}
         onPointerOver={(e) => {
           e.stopPropagation();
-          setHovered(true);
+          onHover(grievance);
         }}
-        onPointerOut={() => setHovered(false)}
+        onPointerOut={() => onHover(null)}
       >
         <sphereGeometry args={[beadRadius, 20, 20]} />
         <meshStandardMaterial
-          color={isSelected ? '#FFFFFF' : isCritical ? '#EF4444' : pinColor}
-          emissive={isSelected ? '#38BDF8' : isCritical ? '#DC2626' : '#000000'}
-          emissiveIntensity={isSelected || isCritical ? 0.6 : 0}
+          color={isResolved ? '#94A3B8' : isSelected ? '#FFFFFF' : isCritical ? '#EF4444' : pinColor}
+          emissive={isResolved ? '#000000' : isSelected ? '#38BDF8' : isCritical ? '#DC2626' : '#000000'}
+          emissiveIntensity={isResolved ? 0 : isSelected || isCritical ? 0.6 : 0}
           roughness={0.1}
           metalness={0.5}
+          transparent={isResolved}
+          opacity={isResolved ? 0.5 : 1.0}
         />
       </mesh>
 
-      {/* Sky Laser Beacon */}
-      {(isCritical || isSelected) && (
+      {/* Sky Laser Beacon (Disabled when resolved) */}
+      {!isResolved && (isCritical || isSelected) && (
         <Line
           points={beaconPoints}
           color={isCritical ? '#EF4444' : '#FFFFFF'}
-          lineWidth={1.8}
+          lineWidth={1.5}
           transparent
           opacity={isSelected ? 0.95 : 0.75}
         />
-      )}
-
-      {/* Floating 3D HTML Pill on Hover/Select */}
-      {(hovered || isSelected) && (
-        <Html distanceFactor={14} position={[0, height + 0.45, 0]} center>
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect(grievance);
-            }}
-            className="cursor-pointer whitespace-nowrap bg-white/95 backdrop-blur-md text-neutral-900 border border-neutral-200/90 shadow-[0_12px_36px_rgba(0,0,0,0.22)] rounded-xl px-3.5 py-2.5 select-none pointer-events-auto transition-transform hover:scale-105"
-          >
-            <div className="font-semibold text-xs text-neutral-950 truncate max-w-[220px]">
-              {grievance.title || 'Civic Issue'}
-            </div>
-            <div className="text-[10px] text-neutral-500 font-mono mt-0.5">
-              {grievance.lat.toFixed(4)}°N, {grievance.lng.toFixed(4)}°E
-            </div>
-            <div className="flex items-center gap-2 text-[11px] text-neutral-600 mt-1 border-t border-neutral-100 pt-1">
-              <span className="font-medium text-neutral-950">
-                Severity {(grievance.severity_score || 0).toFixed(1)}/10
-              </span>
-              <span>•</span>
-              <span>
-                {grievance.upvotes || 1} {grievance.upvotes === 1 ? 'report' : 'reports'}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onZoomToSatellite(grievance.lat, grievance.lng, grievance);
-              }}
-              className="mt-1.5 w-full py-1.5 px-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1.5 shadow-sm transition cursor-pointer"
-            >
-              <Satellite className="w-3 h-3 text-sky-400" />
-              <span>Zoom to Satellite View</span>
-              <span>→</span>
-            </button>
-          </div>
-        </Html>
       )}
     </group>
   );
 }
 
 /**
- * User Current Location Marker on 3D Globe
+ * User Current Location 3D Beacon
+ * - Compact refined dimensions (no giant blue bullseye covering whole countries)
  */
 function GlobeUserMarker({ lat, lng }: { lat: number; lng: number }) {
   const [x, y, z] = useMemo(() => latLngToCartesian(lat, lng, GLOBE_RADIUS), [lat, lng]);
@@ -239,21 +205,63 @@ function GlobeUserMarker({ lat, lng }: { lat: number; lng: number }) {
     return new THREE.Quaternion().setFromUnitVectors(up, normal);
   }, [x, y, z]);
 
+  const pulseRingRef = useRef<THREE.Group>(null);
+
+  useFrame(({ clock }) => {
+    if (pulseRingRef.current) {
+      const progress = (clock.elapsedTime % 1.6) / 1.6;
+      const scale = 1.0 + progress * 0.45;
+      pulseRingRef.current.scale.set(scale, scale, scale);
+      const mesh = pulseRingRef.current.children[0] as THREE.Mesh;
+      if (mesh && mesh.material) {
+        (mesh.material as THREE.MeshBasicMaterial).opacity = (1 - progress) * 0.55;
+      }
+    }
+  });
+
+  const beaconPoints = useMemo<[number, number, number][]>(() => {
+    return [
+      [0, 0.02, 0],
+      [0, 0.18, 0],
+    ];
+  }, []);
+
   return (
     <group position={[x, y, z]} quaternion={orientation}>
-      <mesh position={[0, 0.08, 0]}>
-        <sphereGeometry args={[0.075, 16, 16]} />
-        <meshStandardMaterial color="#0284C7" />
+      {/* 3D Cyan User Position Puck */}
+      <mesh position={[0, 0.02, 0]}>
+        <sphereGeometry args={[0.022, 16, 16]} />
+        <meshStandardMaterial
+          color="#0284C7"
+          emissive="#38BDF8"
+          emissiveIntensity={0.8}
+          roughness={0.1}
+          metalness={0.4}
+        />
       </mesh>
-      <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.14, 0.18, 32]} />
-        <meshBasicMaterial color="#38BDF8" transparent opacity={0.75} side={THREE.DoubleSide} />
+
+      {/* Static Inner Glow Ring */}
+      <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.028, 0.038, 32]} />
+        <meshBasicMaterial color="#38BDF8" transparent opacity={0.85} side={THREE.DoubleSide} />
       </mesh>
-      <Html distanceFactor={14} position={[0, 0.35, 0]} center>
-        <div className="bg-neutral-900 text-white px-2.5 py-0.5 text-[10px] font-medium tracking-wide rounded-full shadow-md whitespace-nowrap">
-          Your Location
-        </div>
-      </Html>
+
+      {/* Animated Expanding Radar Pulse Ring */}
+      <group ref={pulseRingRef} position={[0, 0.004, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh>
+          <ringGeometry args={[0.042, 0.054, 32]} />
+          <meshBasicMaterial color="#0284C7" transparent opacity={0.5} side={THREE.DoubleSide} />
+        </mesh>
+      </group>
+
+      {/* Vertical Cyan Sky Laser */}
+      <Line
+        points={beaconPoints}
+        color="#38BDF8"
+        lineWidth={1.5}
+        transparent
+        opacity={0.7}
+      />
     </group>
   );
 }
@@ -275,7 +283,7 @@ function ConnectionArc({
     if (distance < 0.1 || distance > 3.5) return null;
 
     const mid = v1.clone().add(v2).multiplyScalar(0.5);
-    const midLength = 2.5 + Math.min(0.8, distance * 0.25);
+    const midLength = 2.5 + Math.min(0.4, distance * 0.15);
     mid.normalize().multiplyScalar(midLength);
 
     const curve = new THREE.QuadraticBezierCurve3(v1, mid, v2);
@@ -299,31 +307,42 @@ function ConnectionArc({
 
 /**
  * Camera Flight Controller
- * - Smoothly tracks coordinates facing the user
- * - Automatically triggers satellite zoom if user zooms in close (dist < 3.25)
- * - Throttles React state updates to prevent 60 FPS re-renders
+ * - Smoothly glides to target coordinates, then releases camera controls completely
+ * - User can freely rotate with cursor at any time without camera lock or snapping
  */
 function CameraFlightController({
   targetFocusCoords,
   isUserInteracting,
   onFacingUpdate,
   onAutoZoomTrigger,
+  onFlightComplete,
 }: {
   targetFocusCoords: { lat: number; lng: number } | null;
   isUserInteracting: boolean;
   onFacingUpdate: (lat: number, lng: number) => void;
   onAutoZoomTrigger: (lat: number, lng: number) => void;
+  onFlightComplete: () => void;
 }) {
   const { camera } = useThree();
   const lastUpdateRef = useRef<number>(0);
   const isZoomingInRef = useRef<boolean>(false);
 
   useFrame((_, delta) => {
-    // If target coords are provided and user is not actively orbiting, lerp camera towards it
-    if (targetFocusCoords && !isUserInteracting && !isZoomingInRef.current) {
+    // If target focus coords exist and user is not manually rotating, smoothly fly camera
+    if (targetFocusCoords && !isUserInteracting) {
       const [tx, ty, tz] = latLngToCartesian(targetFocusCoords.lat, targetFocusCoords.lng, 5.5);
-      camera.position.lerp(new THREE.Vector3(tx, ty, tz), delta * 2.5);
-      camera.lookAt(0, 0, 0);
+      const targetVec = new THREE.Vector3(tx, ty, tz);
+      const distToTarget = camera.position.distanceTo(targetVec);
+
+      // Once arrived near destination, finish flight and release camera controls completely
+      if (distToTarget < 0.08) {
+        camera.position.copy(targetVec);
+        camera.lookAt(0, 0, 0);
+        onFlightComplete();
+      } else {
+        camera.position.lerp(targetVec, delta * 3.5);
+        camera.lookAt(0, 0, 0);
+      }
     }
 
     const dist = camera.position.length();
@@ -336,10 +355,12 @@ function CameraFlightController({
       dist
     );
 
-    // If user zooms in very close with mouse wheel or pinch, dive into Satellite view of that spot!
+    // If user zooms in close with scroll wheel or pinch, dive into Satellite view of that spot
     if (dist < 3.2 && !isZoomingInRef.current) {
       isZoomingInRef.current = true;
       onAutoZoomTrigger(centerLat, centerLng);
+    } else if (dist >= 3.6) {
+      isZoomingInRef.current = false;
     }
 
     // Throttle UI update to every 120ms so React doesn't re-render 60 times/sec
@@ -355,8 +376,6 @@ function CameraFlightController({
 
 /**
  * Photorealistic 3D Earth Globe Model
- * - Raycast DISABLED on clouds and atmosphere so clicks penetrate to Earth surface
- * - Click or Double-Click detects exact (lat, lng) and initiates zoom
  */
 function EarthGlobeModel({
   earthMap,
@@ -394,7 +413,7 @@ function EarthGlobeModel({
           const dx = e.clientX - pointerDownRef.current.x;
           const dy = e.clientY - pointerDownRef.current.y;
           const dt = performance.now() - pointerDownRef.current.time;
-          // Only trigger if this was a genuine click, not a drag-to-rotate gesture
+          // Only trigger if this was a genuine click, not a camera rotation drag
           if (Math.hypot(dx, dy) < 8 && dt < 400) {
             e.stopPropagation();
             const [lat, lng] = cartesianToLatLng(e.point.x, e.point.y, e.point.z, GLOBE_RADIUS);
@@ -410,9 +429,9 @@ function EarthGlobeModel({
         <sphereGeometry args={[GLOBE_RADIUS, 64, 64]} />
         <meshStandardMaterial
           map={earthMap || undefined}
-          color={earthMap ? '#FFFFFF' : '#10375C'}
-          roughness={0.65}
-          metalness={0.15}
+          color="#FFFFFF"
+          roughness={0.85}
+          metalness={0.05}
         />
       </mesh>
 
@@ -449,7 +468,6 @@ function EarthGlobeModel({
  * STABLE HIGH-RESOLUTION SATELLITE INSPECTOR (Leaflet)
  * - PURE ESRI SATELLITE IMAGERY (NO ROADS, NO API KEYS, NO WATERMARKS)
  * - Complete immunity to '_leaflet_pos' runtime error via animation controls
- * - Smoothly transitions back to 3D globe if zoomed out past level 3
  */
 function StableSatelliteInspector({
   targetCoords,
@@ -480,13 +498,14 @@ function StableSatelliteInspector({
       grievances.forEach((g) => {
         const isSelected = g.id === selectedId;
         const isCritical = (g.severity_score || 0) >= 8.0;
+        const isResolved = g.status === 'RESOLVED';
 
         // 100m PostGIS Deduplication Radar Ring
         const circle = L.circle([g.lat, g.lng], {
           radius: 100, // Exact 100-meter PostGIS perimeter
-          color: isCritical ? '#EF4444' : isSelected ? '#FFFFFF' : '#38BDF8',
-          fillColor: isCritical ? '#EF4444' : '#38BDF8',
-          fillOpacity: 0.22,
+          color: isResolved ? '#94A3B8' : isCritical ? '#EF4444' : isSelected ? '#FFFFFF' : '#38BDF8',
+          fillColor: isResolved ? '#94A3B8' : isCritical ? '#EF4444' : '#38BDF8',
+          fillOpacity: isResolved ? 0.1 : 0.22,
           weight: isSelected ? 3 : 1.8,
           dashArray: '6, 6',
         });
@@ -497,8 +516,8 @@ function StableSatelliteInspector({
             display: flex;
             align-items: center;
             gap: 4px;
-            background: ${isSelected ? '#000000' : isCritical ? '#EF4444' : 'rgba(255, 255, 255, 0.95)'};
-            color: ${isSelected || isCritical ? '#FFFFFF' : '#0F172A'};
+            background: ${isResolved ? '#64748B' : isSelected ? '#000000' : isCritical ? '#EF4444' : 'rgba(255, 255, 255, 0.95)'};
+            color: ${isResolved || isSelected || isCritical ? '#FFFFFF' : '#0F172A'};
             padding: 4px 8px;
             border-radius: 9999px;
             box-shadow: 0 6px 18px rgba(0,0,0,0.45);
@@ -508,8 +527,8 @@ function StableSatelliteInspector({
             cursor: pointer;
             white-space: nowrap;
           ">
-            <span>${g.severity_score.toFixed(1)}</span>
-            <span style="opacity: 0.8; font-size: 9px;">▲${g.upvotes}</span>
+            <span>${isResolved ? '✓' : g.severity_score.toFixed(1)}</span>
+            <span style="opacity: 0.8; font-size: 9px;">${isResolved ? 'Resolved' : `▲${g.upvotes}`}</span>
           </div>
         `;
 
@@ -529,10 +548,10 @@ function StableSatelliteInspector({
           <div style="font-family: sans-serif; padding: 4px; max-width: 220px;">
             <div style="font-weight: bold; font-size: 13px; margin-bottom: 2px; color: #0F172A;">${g.title}</div>
             <div style="font-size: 11px; color: #64748B;">${g.address || `${g.lat.toFixed(4)}, ${g.lng.toFixed(4)}`}</div>
-            <div style="font-size: 11px; margin-top: 6px; font-weight: 600; color: #0284C7;">
-              Severity: ${g.severity_score.toFixed(1)}/10 • ${g.upvotes} Reports
+            <div style="font-size: 11px; margin-top: 6px; font-weight: 600; color: ${isResolved ? '#10B981' : '#0284C7'};">
+              ${isResolved ? 'Status: RESOLVED' : `Severity: ${g.severity_score.toFixed(1)}/10 • ${g.upvotes} Reports`}
             </div>
-            <div style="font-size: 10px; color: #0284C7; margin-top: 2px; font-weight: 500;">
+            <div style="font-size: 10px; color: #64748B; margin-top: 2px; font-weight: 500;">
               100m PostGIS Cluster Active
             </div>
           </div>
@@ -608,7 +627,6 @@ function StableSatelliteInspector({
     import('leaflet').then((L) => {
       if (isCancelled || !containerRef.current || mapRef.current) return;
 
-      // Disabling fadeAnimation & zoomAnimation permanently eliminates '_leaflet_pos' race conditions
       const map = L.map(containerRef.current, {
         center: [targetCoords.lat, targetCoords.lng],
         zoom: 16,
@@ -625,7 +643,7 @@ function StableSatelliteInspector({
         const z = map.getZoom();
         setCurrentZoom(z);
 
-        // If user zooms all the way out past level 3 (global scale), return to 3D Globe!
+        // If user zooms out past level 3 (global scale), return to 3D Globe
         if (z <= 3) {
           const center = map.getCenter();
           onSwitchToGlobe({ lat: center.lat, lng: center.lng });
@@ -662,7 +680,7 @@ function StableSatelliteInspector({
         layerGroupRef.current = null;
       }
     };
-  }, []); // Run ONCE on mount!
+  }, []);
 
   // Update markers when grievances list or selectedId updates
   useEffect(() => {
@@ -728,8 +746,9 @@ function StableSatelliteInspector({
 
 /**
  * UNIFIED DUAL-ENGINE GEOSPATIAL VIEWPORT
- * - Mode 1: 3D Earth Globe with NASA Satellite Imagery + Click / Scroll to dive into satellite
- * - Mode 2: High-Resolution Satellite Inspector (Centers directly on clicked coordinates, no roads)
+ * - Smooth cursor rotation at all zoom levels (zero camera freeze)
+ * - Refined, sleek architectural pins and markers (no giant continent-spanning objects)
+ * - Direct click / scroll to zoom into sub-meter satellite imagery
  */
 export default function ThreeSpatialCanvas({
   grievances,
@@ -741,8 +760,9 @@ export default function ThreeSpatialCanvas({
   const [viewMode, setViewMode] = useState<'globe' | 'satellite'>('globe');
   const [autoRotate, setAutoRotate] = useState(true);
   const [isUserInteracting, setIsUserInteracting] = useState(false);
+  const [hoveredGrievance, setHoveredGrievance] = useState<GrievanceRecord | null>(null);
 
-  // Dynamic initial coordinates based on user GPS or first grievance or Greenwich
+  // Dynamic initial coordinates based on user GPS or first grievance or global center
   const initialCenter = useMemo<{ lat: number; lng: number }>(() => {
     if (userCoords) return userCoords;
     if (selectedId) {
@@ -761,7 +781,7 @@ export default function ThreeSpatialCanvas({
   // Target coordinates for satellite inspector
   const [satelliteTarget, setSatelliteTarget] = useState<{ lat: number; lng: number }>(initialCenter);
 
-  // Target coordinates to steer 3D globe camera towards
+  // Target coordinates to steer 3D globe camera towards (cleared on arrival or user interaction)
   const [targetFocusCoords, setTargetFocusCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   // Load High-Res NASA Earth and Cloud textures from local storage
@@ -787,11 +807,14 @@ export default function ThreeSpatialCanvas({
         setTargetFocusCoords({ lat: g.lat, lng: g.lng });
         setSatelliteTarget({ lat: g.lat, lng: g.lng });
       }
+    } else {
+      setTargetFocusCoords(null);
     }
   }, [selectedId, grievances]);
 
   // Recenter Globe Camera
   const handleResetGlobe = () => {
+    setTargetFocusCoords(null);
     if (controlsRef.current) {
       controlsRef.current.reset();
       controlsRef.current.target.set(0, 0, 0);
@@ -829,6 +852,11 @@ export default function ThreeSpatialCanvas({
     setFacingCoords(coords);
     setViewMode('globe');
   };
+
+  // Clears automated flight once the camera arrives at destination
+  const handleFlightComplete = useCallback(() => {
+    setTargetFocusCoords(null);
+  }, []);
 
   // Calculate initial camera position facing initial coordinates
   const initialCameraPos = useMemo<[number, number, number]>(() => {
@@ -877,12 +905,51 @@ export default function ThreeSpatialCanvas({
         </div>
       </div>
 
-      {/* Helpful Hint Overlay */}
-      <div className="absolute top-14 left-1/2 -translate-x-1/2 z-10 pointer-events-none text-center">
-        <div className="bg-black/75 backdrop-blur-md border border-neutral-700/80 shadow-md rounded-full px-4 py-1.5 text-xs text-neutral-200">
-          💡 Click or double-click anywhere on Earth, or scroll inward to dive into satellite imagery
+      {/* Hovered Pin 2D Glassmorphic Tooltip Pill */}
+      {hoveredGrievance && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto animate-in fade-in zoom-in-95 duration-150">
+          <div
+            onClick={() => onSelectGrievance(hoveredGrievance)}
+            className="cursor-pointer bg-white/95 backdrop-blur-md text-neutral-900 border border-neutral-200/90 shadow-[0_12px_36px_rgba(0,0,0,0.25)] rounded-2xl p-3 select-none flex items-center gap-3 transition hover:scale-105"
+          >
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+              hoveredGrievance.status === 'RESOLVED'
+                ? 'bg-emerald-600 text-white'
+                : 'bg-neutral-950 text-white'
+            }`}>
+              {hoveredGrievance.status === 'RESOLVED' ? '✓' : hoveredGrievance.severity_score.toFixed(1)}
+            </div>
+            <div className="min-w-0 max-w-[240px]">
+              <div className="font-semibold text-xs text-neutral-950 truncate">
+                {hoveredGrievance.title || 'Civic Issue'}
+              </div>
+              <div className="text-[10px] text-neutral-500 font-mono mt-0.5">
+                {hoveredGrievance.lat.toFixed(4)}°N, {hoveredGrievance.lng.toFixed(4)}°E • {hoveredGrievance.status === 'RESOLVED' ? 'Resolved' : `${hoveredGrievance.upvotes || 1} reports`}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePinZoom(hoveredGrievance.lat, hoveredGrievance.lng, hoveredGrievance);
+              }}
+              className="py-1 px-2.5 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-lg text-[10px] font-semibold flex items-center gap-1 shrink-0 border border-sky-200/80 transition cursor-pointer"
+            >
+              <Satellite className="w-3 h-3 text-sky-600" />
+              <span>Satellite →</span>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Helpful Hint Overlay */}
+      {!hoveredGrievance && (
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-10 pointer-events-none text-center">
+          <div className="bg-black/75 backdrop-blur-md border border-neutral-700/80 shadow-md rounded-full px-4 py-1.5 text-xs text-neutral-200">
+            💡 Click or double-click anywhere on Earth, or scroll inward to dive into satellite imagery
+          </div>
+        </div>
+      )}
 
       {/* Bottom-Left Control Buttons */}
       <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2">
@@ -915,23 +982,34 @@ export default function ThreeSpatialCanvas({
       >
         <color attach="background" args={['#030712']} />
 
-        {/* Clean Studio Three-Point Lighting */}
-        <ambientLight intensity={0.9} />
-        <directionalLight position={[15, 20, 15]} intensity={1.3} />
-        <directionalLight position={[-15, -10, -15]} intensity={0.4} />
+        {/* Balanced Studio Daylight Illumination */}
+        <ambientLight intensity={1.4} />
+        <directionalLight position={[12, 12, 12]} intensity={0.9} />
+        <directionalLight position={[-12, 12, -12]} intensity={0.7} />
+        <directionalLight position={[0, -12, 12]} intensity={0.5} />
 
-        {/* Orbit Controls with Smooth Damping and Zoom */}
+        {/* Orbit Controls with Smooth Damping - Immediately frees rotation on user touch */}
         <OrbitControls
           ref={controlsRef}
           makeDefault
+          enableRotate={true}
+          rotateSpeed={0.8}
+          enableZoom={true}
+          zoomSpeed={1.0}
+          enablePan={false}
+          minDistance={2.8}
+          maxDistance={12.0}
           autoRotate={autoRotate && !isUserInteracting && !targetFocusCoords}
           autoRotateSpeed={0.45}
-          enableDamping
+          enableDamping={true}
           dampingFactor={0.06}
-          minDistance={2.9}
-          maxDistance={12.0}
-          onStart={() => setIsUserInteracting(true)}
-          onEnd={() => setIsUserInteracting(false)}
+          onStart={() => {
+            setIsUserInteracting(true);
+            setTargetFocusCoords(null); // Release automated camera flight instantly on user drag!
+          }}
+          onEnd={() => {
+            setIsUserInteracting(false);
+          }}
         />
 
         {/* Camera Flight & Zoom Controller */}
@@ -940,6 +1018,7 @@ export default function ThreeSpatialCanvas({
           isUserInteracting={isUserInteracting}
           onFacingUpdate={(lat, lng) => setFacingCoords({ lat, lng })}
           onAutoZoomTrigger={handleAutoZoomIn}
+          onFlightComplete={handleFlightComplete}
         />
 
         {/* Photorealistic 3D Earth with Direct Click-to-Zoom */}
@@ -949,7 +1028,7 @@ export default function ThreeSpatialCanvas({
           onGlobeClick={handleGlobeClick}
         />
 
-        {/* User GPS Location Marker */}
+        {/* User GPS Location 3D Marker */}
         {userCoords && (
           <GlobeUserMarker lat={userCoords.lat} lng={userCoords.lng} />
         )}
@@ -976,7 +1055,7 @@ export default function ThreeSpatialCanvas({
               grievance={g}
               isSelected={isSelected}
               onSelect={onSelectGrievance}
-              onZoomToSatellite={handlePinZoom}
+              onHover={setHoveredGrievance}
             />
           );
         })}
