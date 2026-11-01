@@ -428,9 +428,10 @@ function EarthGlobeModel({
       >
         <sphereGeometry args={[GLOBE_RADIUS, 64, 64]} />
         <meshStandardMaterial
+          key={earthMap ? `earth-tex-${earthMap.uuid}` : 'earth-loading'}
           map={earthMap || undefined}
-          color="#FFFFFF"
-          roughness={0.85}
+          color={earthMap ? '#FFFFFF' : '#0F2744'}
+          roughness={0.7}
           metalness={0.05}
         />
       </mesh>
@@ -438,12 +439,13 @@ function EarthGlobeModel({
       {/* 2. Dynamic Wispy Cloud Layer - RAYCAST DISABLED */}
       {cloudsMap && (
         <mesh ref={cloudsRef} raycast={() => null}>
-          <sphereGeometry args={[GLOBE_RADIUS + 0.025, 48, 48]} />
+          <sphereGeometry args={[GLOBE_RADIUS + 0.02, 48, 48]} />
           <meshStandardMaterial
+            key={`clouds-tex-${cloudsMap.uuid}`}
             map={cloudsMap}
             transparent
-            opacity={0.35}
-            blending={THREE.AdditiveBlending}
+            opacity={0.22}
+            blending={THREE.NormalBlending}
             depthWrite={false}
           />
         </mesh>
@@ -451,11 +453,11 @@ function EarthGlobeModel({
 
       {/* 3. Luminous Atmospheric Scattering Halo - RAYCAST DISABLED */}
       <mesh raycast={() => null}>
-        <sphereGeometry args={[GLOBE_RADIUS + 0.07, 48, 48]} />
+        <sphereGeometry args={[GLOBE_RADIUS + 0.06, 48, 48]} />
         <meshBasicMaterial
           color="#38BDF8"
           transparent
-          opacity={0.3}
+          opacity={0.2}
           side={THREE.BackSide}
           blending={THREE.NormalBlending}
         />
@@ -750,6 +752,10 @@ function StableSatelliteInspector({
  * - Refined, sleek architectural pins and markers (no giant continent-spanning objects)
  * - Direct click / scroll to zoom into sub-meter satellite imagery
  */
+// Module-level texture cache so Earth & clouds are preserved across view switches
+let cachedEarthTexture: THREE.Texture | null = null;
+let cachedCloudsTexture: THREE.Texture | null = null;
+
 export default function ThreeSpatialCanvas({
   grievances,
   selectedId,
@@ -784,20 +790,35 @@ export default function ThreeSpatialCanvas({
   // Target coordinates to steer 3D globe camera towards (cleared on arrival or user interaction)
   const [targetFocusCoords, setTargetFocusCoords] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Load High-Res NASA Earth and Cloud textures from local storage
-  const [earthMap, setEarthMap] = useState<THREE.Texture | null>(null);
-  const [cloudsMap, setCloudsMap] = useState<THREE.Texture | null>(null);
+  // Load High-Res NASA Earth and Cloud textures from local storage with memory caching
+  const [earthMap, setEarthMap] = useState<THREE.Texture | null>(cachedEarthTexture);
+  const [cloudsMap, setCloudsMap] = useState<THREE.Texture | null>(cachedCloudsTexture);
 
   useEffect(() => {
-    const loader = new THREE.TextureLoader();
-    loader.load('/textures/earth.jpg', (tex) => {
-      tex.colorSpace = THREE.SRGBColorSpace;
-      setEarthMap(tex);
-    });
-    loader.load('/textures/clouds.png', (tex) => {
-      setCloudsMap(tex);
-    });
-  }, []);
+    if (!cachedEarthTexture) {
+      const loader = new THREE.TextureLoader();
+      loader.load('/textures/earth.jpg', (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.needsUpdate = true;
+        cachedEarthTexture = tex;
+        setEarthMap(tex);
+      });
+    } else if (!earthMap) {
+      setEarthMap(cachedEarthTexture);
+    }
+
+    if (!cachedCloudsTexture) {
+      const loader = new THREE.TextureLoader();
+      loader.load('/textures/clouds.png', (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.needsUpdate = true;
+        cachedCloudsTexture = tex;
+        setCloudsMap(tex);
+      });
+    } else if (!cloudsMap) {
+      setCloudsMap(cachedCloudsTexture);
+    }
+  }, [earthMap, cloudsMap]);
 
   // Update target when an incident is selected
   useEffect(() => {
@@ -983,10 +1004,10 @@ export default function ThreeSpatialCanvas({
         <color attach="background" args={['#F4F2EA']} />
 
         {/* Balanced Studio Daylight Illumination */}
-        <ambientLight intensity={1.5} />
-        <directionalLight position={[12, 14, 12]} intensity={1.0} />
-        <directionalLight position={[-12, 12, -12]} intensity={0.6} />
-        <directionalLight position={[0, -12, 12]} intensity={0.4} />
+        <ambientLight intensity={0.9} />
+        <directionalLight position={[10, 12, 10]} intensity={1.1} />
+        <directionalLight position={[-10, 8, -10]} intensity={0.4} />
+        <directionalLight position={[0, -10, 10]} intensity={0.25} />
 
         {/* Orbit Controls with Smooth Damping - Immediately frees rotation on user touch */}
         <OrbitControls
