@@ -5,16 +5,13 @@ import { TiltCard3D } from './TiltCard3D';
 import {
   Globe,
   Camera,
-  Mic,
   Cpu,
   Layers,
   CloudRain,
   ShieldCheck,
   CheckCircle2,
-  Clock,
   ArrowRight,
   Sparkles,
-  Zap,
 } from 'lucide-react';
 
 interface FeatureItem {
@@ -36,7 +33,7 @@ const FEATURES: FeatureItem[] = [
     subtitle: 'Interactive WebGL Digital Twin of Municipal Infrastructure',
     description:
       'Explore active civic grievances mapped directly onto an interactive 3D Earth Globe with realistic atmospheric lighting, smooth raycasted pin selection, and seamless dive zoom into ultra-high-resolution satellite street imagery.',
-    icon: <Globe className="w-5 h-5 text-sky-600" />,
+    icon: <Globe className="w-5 h-5 text-sky-500" />,
     badgeColor: 'bg-sky-50 text-sky-700 border-sky-200',
     highlights: [
       'Raycasted 3D pins with animated pulse waves',
@@ -116,8 +113,8 @@ const FEATURES: FeatureItem[] = [
     subtitle: 'Cryptographically Authenticated Resolution Pipeline',
     description:
       'Strict role separation between Citizens and Municipal Authorities. Municipal administrators unlock dispatch controls with HMAC-SHA256 authenticated sessions to dispatch field contractors and archive completed works with cryptographic seals.',
-    icon: <ShieldCheck className="w-5 h-5 text-neutral-900" />,
-    badgeColor: 'bg-neutral-100 text-neutral-800 border-neutral-300',
+    icon: <ShieldCheck className="w-5 h-5 text-emerald-600" />,
+    badgeColor: 'bg-zinc-100 text-zinc-800 border-zinc-300',
     highlights: [
       'HMAC-SHA256 signed stateless session tokens with HttpOnly cookies',
       'Restricted "Mark Resolved" and "Dispatch" authority controls',
@@ -138,17 +135,17 @@ export function PlatformFeatures({ onExploreFeatures }: PlatformFeaturesProps) {
     FEATURES.find((f) => f.id === activeFeatureId) || FEATURES[0];
 
   return (
-    <section className="w-full max-w-6xl mx-auto px-6 py-16">
+    <section className="w-full max-w-6xl mx-auto px-6 py-12">
       {/* Section Header */}
-      <div className="text-center max-w-2xl mx-auto mb-12">
-        <div className="inline-flex items-center gap-2 rounded-full border border-[#DFDACD] bg-[#EAE6DC] px-3.5 py-1 text-[11px] font-semibold tracking-wider text-neutral-700 shadow-2xs mb-3">
-          <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+      <div className="text-center max-w-2xl mx-auto mb-10">
+        <div className="inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-[11px] font-semibold tracking-wider shadow-2xs mb-3 border border-zinc-200 bg-white text-emerald-700">
+          <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
           <span>AUTONOMOUS INFRASTRUCTURE SUITE</span>
         </div>
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-neutral-950">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-zinc-950">
           Engineered for Total Municipal Transparency
         </h2>
-        <p className="mt-3 text-xs sm:text-sm text-neutral-600 leading-relaxed font-normal">
+        <p className="mt-3 text-xs sm:text-sm leading-relaxed font-normal text-zinc-600">
           From the instant a citizen taps record to the second municipal contractors close a work order, every step is automated, auditable, and beautifully visualized.
         </p>
       </div>
@@ -162,13 +159,13 @@ export function PlatformFeatures({ onExploreFeatures }: PlatformFeaturesProps) {
               key={feature.id}
               type="button"
               onClick={() => setActiveFeatureId(feature.id)}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
                 isActive
-                  ? 'bg-neutral-950 text-white shadow-sm ring-1 ring-black/10 scale-102'
-                  : 'bg-white/80 hover:bg-white text-neutral-600 hover:text-neutral-950 border border-[#E4E1D6]'
+                  ? 'bg-zinc-950 text-white border-zinc-950 shadow-xs'
+                  : 'bg-white hover:bg-zinc-50 text-zinc-600 hover:text-zinc-950 border-zinc-200'
               }`}
             >
-              <span className={isActive ? 'text-emerald-400' : 'text-neutral-500'}>
+              <span className={isActive ? 'text-emerald-400' : 'text-zinc-500'}>
                 {feature.icon}
               </span>
               <span>{feature.title.split(' ')[0]} {feature.title.split(' ')[1]}</span>
@@ -177,34 +174,32 @@ export function PlatformFeatures({ onExploreFeatures }: PlatformFeaturesProps) {
         })}
       </div>
 
-      {/* Spotlight Feature Card (Apple / Linear Showcase Card) */}
-      <div className="rounded-3xl border border-[#E4E1D6] bg-white/95 backdrop-blur-xl p-6 sm:p-8 md:p-10 shadow-[0_16px_50px_rgba(40,35,25,0.06)] relative overflow-hidden transition-all duration-300">
+      {/* Spotlight Feature Card */}
+      <div className="rounded-3xl p-6 sm:p-8 md:p-10 shadow-sm relative overflow-hidden transition-all duration-300 border border-zinc-200 bg-white">
         {/* Subtle Ambient Radial Highlight */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-emerald-100/40 via-transparent to-transparent pointer-events-none rounded-full blur-2xl" />
+        <div className="absolute top-0 right-0 w-96 h-96 pointer-events-none rounded-full blur-2xl bg-gradient-to-bl from-emerald-100/40 via-transparent to-transparent" />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
           {/* Left Column: Detailed Description & Checklist */}
           <div className="lg:col-span-7 space-y-4">
             <div className="flex items-center gap-2">
-              <span
-                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border ${selectedFeature.badgeColor}`}
-              >
+              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border ${selectedFeature.badgeColor}`}>
                 {selectedFeature.tag}
               </span>
-              <span className="text-[11px] text-neutral-400 font-medium">
+              <span className="text-[11px] font-medium text-zinc-400">
                 Core Capability
               </span>
             </div>
 
-            <h3 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-neutral-950">
+            <h3 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-zinc-950">
               {selectedFeature.title}
             </h3>
 
-            <p className="text-xs sm:text-sm text-neutral-700 font-medium">
+            <p className="text-xs sm:text-sm font-medium text-zinc-700">
               {selectedFeature.subtitle}
             </p>
 
-            <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed font-normal">
+            <p className="text-xs sm:text-sm leading-relaxed font-normal text-zinc-600">
               {selectedFeature.description}
             </p>
 
@@ -212,10 +207,10 @@ export function PlatformFeatures({ onExploreFeatures }: PlatformFeaturesProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-3">
               {selectedFeature.highlights.map((item, idx) => (
                 <div key={idx} className="flex items-start gap-2">
-                  <div className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5 border bg-emerald-100 text-emerald-700 border-emerald-300">
+                    <CheckCircle2 className="w-3 h-3" />
                   </div>
-                  <span className="text-xs text-neutral-700 font-medium leading-snug">
+                  <span className="text-xs font-medium leading-snug text-zinc-700">
                     {item}
                   </span>
                 </div>
@@ -227,7 +222,7 @@ export function PlatformFeatures({ onExploreFeatures }: PlatformFeaturesProps) {
                 <button
                   type="button"
                   onClick={onExploreFeatures}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-neutral-950 hover:bg-neutral-800 text-white text-xs font-semibold shadow-sm transition active:scale-95 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition active:scale-95 cursor-pointer bg-zinc-950 hover:bg-zinc-800 text-white shadow-xs"
                 >
                   <span>Launch Live Workspace</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -239,23 +234,23 @@ export function PlatformFeatures({ onExploreFeatures }: PlatformFeaturesProps) {
           {/* Right Column: Visual Mini-Card Simulation with 3D Tilt */}
           <div className="lg:col-span-5">
             <TiltCard3D maxTilt={7} glare={true} className="rounded-2xl">
-              <div className="rounded-2xl border border-[#E4E1D6] bg-[#F8F6F0] p-5 shadow-inner space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-[#E4E1D6]">
+              <div className="rounded-2xl p-5 space-y-4 border border-zinc-200 bg-zinc-50 shadow-sm">
+                <div className="flex items-center justify-between pb-3 border-b border-zinc-200">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-neutral-950 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shadow-xs bg-zinc-950 text-white">
                       CP
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-neutral-950">
+                      <div className="text-xs font-bold text-zinc-950">
                         Live Engine State
                       </div>
-                      <div className="text-[10px] text-neutral-500">
+                      <div className="text-[10px] text-zinc-500">
                         Cluster Node #IND-7502
                       </div>
                     </div>
                   </div>
-                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-100/90 text-emerald-800 text-[10px] font-semibold border border-emerald-300/80">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-emerald-100 text-emerald-800 border-emerald-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     <span>ONLINE</span>
                   </span>
                 </div>
@@ -263,19 +258,19 @@ export function PlatformFeatures({ onExploreFeatures }: PlatformFeaturesProps) {
                 {/* Dynamic simulated content based on selected feature */}
                 {selectedFeature.id === 'geospatial' && (
                   <div className="space-y-3">
-                    <div className="bg-neutral-900 text-white p-3.5 rounded-xl space-y-2 font-mono text-[11px]">
-                      <div className="text-neutral-400 text-[10px]">
+                    <div className="bg-zinc-950 border border-zinc-900 text-white p-3.5 rounded-xl space-y-2 font-mono text-[11px]">
+                      <div className="text-zinc-500 text-[10px]">
                         // Three.js Raycaster Telemetry
                       </div>
                       <div className="text-sky-300">Target: 15.39408°N, 75.02424°E</div>
-                      <div className="text-neutral-300">Camera Alt: 2.38R (Mesosphere)</div>
+                      <div className="text-zinc-400">Camera Alt: 2.38R (Mesosphere)</div>
                       <div className="text-emerald-400">Projection: WGS84 Cartesian</div>
                     </div>
-                    <div className="p-3 bg-white rounded-xl border border-[#E4E1D6] text-xs space-y-1">
-                      <span className="font-semibold text-neutral-900 block">
+                    <div className="p-3 rounded-xl border border-zinc-200 bg-white text-xs space-y-1">
+                      <span className="font-semibold block text-zinc-950">
                         Orbital Dive Supported
                       </span>
-                      <span className="text-[11px] text-neutral-500 block">
+                      <span className="text-[11px] block text-zinc-600">
                         Double-click anywhere on Earth to transition from planetary view directly to high-res satellite imagery.
                       </span>
                     </div>
@@ -285,30 +280,30 @@ export function PlatformFeatures({ onExploreFeatures }: PlatformFeaturesProps) {
                 {selectedFeature.id === 'multimodal' && (
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-2">
-                      <div className="p-3 bg-white rounded-xl border border-[#E4E1D6] text-center">
-                        <div className="text-[10px] font-semibold text-neutral-500 uppercase">
+                      <div className="p-3 rounded-xl border border-zinc-200 bg-white text-center">
+                        <div className="text-[10px] font-semibold uppercase text-zinc-500">
                           Slot 1
                         </div>
-                        <div className="text-xs font-bold text-neutral-900 mt-1">
+                        <div className="text-xs font-bold mt-1 text-zinc-950">
                           3D Folder Photo
                         </div>
-                        <div className="text-[10px] text-emerald-600 mt-0.5">
+                        <div className="text-[10px] text-emerald-600 font-semibold mt-0.5">
                           ✓ EXIF Timestamp
                         </div>
                       </div>
-                      <div className="p-3 bg-white rounded-xl border border-[#E4E1D6] text-center">
-                        <div className="text-[10px] font-semibold text-neutral-500 uppercase">
+                      <div className="p-3 rounded-xl border border-zinc-200 bg-white text-center">
+                        <div className="text-[10px] font-semibold uppercase text-zinc-500">
                           Slot 2
                         </div>
-                        <div className="text-xs font-bold text-neutral-900 mt-1">
+                        <div className="text-xs font-bold mt-1 text-zinc-950">
                           3D Mic Capsule
                         </div>
-                        <div className="text-[10px] text-purple-600 mt-0.5">
+                        <div className="text-[10px] text-purple-600 font-semibold mt-0.5">
                           ✓ WebM Audio
                         </div>
                       </div>
                     </div>
-                    <div className="p-3 bg-white rounded-xl border border-[#E4E1D6] text-xs font-mono text-neutral-700">
+                    <div className="p-3 rounded-xl border border-zinc-200 bg-white text-xs font-mono text-zinc-700">
                       &quot;Deep pothole spanning both lanes near civil hospital entrance. Water accumulates quickly.&quot;
                     </div>
                   </div>
@@ -317,24 +312,24 @@ export function PlatformFeatures({ onExploreFeatures }: PlatformFeaturesProps) {
                 {selectedFeature.id === 'ai-triage' && (
                   <div className="space-y-2.5">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-neutral-600">Assigned Dept:</span>
-                      <span className="font-bold text-neutral-900 bg-white px-2 py-0.5 rounded-md border border-[#E4E1D6]">
+                      <span className="font-medium text-zinc-600">Assigned Dept:</span>
+                      <span className="font-bold px-2 py-0.5 rounded-md border text-zinc-900 bg-white border-zinc-200">
                         Roads &amp; Public Works
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-neutral-600">Severity Rating:</span>
-                      <span className="font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-md border border-red-200">
+                      <span className="font-medium text-zinc-600">Severity Rating:</span>
+                      <span className="font-bold px-2 py-0.5 rounded-md border text-red-700 bg-red-50 border-red-200">
                         8.9 / 10 (Urgent)
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-neutral-600">Contractor SLA:</span>
-                      <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      <span className="font-medium text-zinc-600">Contractor SLA:</span>
+                      <span className="font-bold px-2 py-0.5 rounded-md border text-emerald-800 bg-emerald-50 border-emerald-200">
                         1d 23h Target
                       </span>
                     </div>
-                    <div className="p-2.5 bg-neutral-900 text-neutral-200 rounded-xl text-[10px] font-mono">
+                    <div className="p-2.5 rounded-xl text-[10px] font-mono border bg-zinc-950 text-zinc-200 border-zinc-900">
                       Dispatch: Cold-mix asphalt batch + roller compaction team
                     </div>
                   </div>
@@ -342,20 +337,20 @@ export function PlatformFeatures({ onExploreFeatures }: PlatformFeaturesProps) {
 
                 {selectedFeature.id === 'clustering' && (
                   <div className="space-y-3">
-                    <div className="p-3 bg-white rounded-xl border border-[#E4E1D6] space-y-1.5">
+                    <div className="p-3 rounded-xl border border-zinc-200 bg-white space-y-1.5">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-neutral-900">Cluster #C-4091</span>
-                        <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                        <span className="font-bold text-zinc-950">Cluster #C-4091</span>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border text-amber-800 bg-amber-50 border-amber-200">
                           Merged 4 Reports
                         </span>
                       </div>
-                      <div className="text-[11px] text-neutral-500">
+                      <div className="text-[11px] text-zinc-600">
                         Haversine Radius: 14.2 meters (Within 20m threshold)
                       </div>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-neutral-600 bg-white p-2.5 rounded-xl border border-[#E4E1D6]">
+                    <div className="flex items-center justify-between text-xs p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-700">
                       <span>Aggregated Community Upvotes:</span>
-                      <span className="font-bold text-neutral-950">▲ 18 Votes</span>
+                      <span className="font-bold text-emerald-600">▲ 18 Votes</span>
                     </div>
                   </div>
                 )}
@@ -363,20 +358,20 @@ export function PlatformFeatures({ onExploreFeatures }: PlatformFeaturesProps) {
                 {selectedFeature.id === 'telemetry' && (
                   <div className="space-y-2.5">
                     <div className="grid grid-cols-3 gap-2 text-center">
-                      <div className="p-2.5 bg-white rounded-xl border border-[#E4E1D6]">
-                        <div className="text-[10px] text-neutral-400 font-medium">Temp</div>
-                        <div className="text-xs font-bold text-neutral-900 mt-0.5">27.4°C</div>
+                      <div className="p-2.5 rounded-xl border border-zinc-200 bg-white">
+                        <div className="text-[10px] font-medium text-zinc-500">Temp</div>
+                        <div className="text-xs font-bold mt-0.5 text-zinc-950">27.4°C</div>
                       </div>
-                      <div className="p-2.5 bg-white rounded-xl border border-[#E4E1D6]">
-                        <div className="text-[10px] text-neutral-400 font-medium">Rain</div>
-                        <div className="text-xs font-bold text-blue-600 mt-0.5">14 mm</div>
+                      <div className="p-2.5 rounded-xl border border-zinc-200 bg-white">
+                        <div className="text-[10px] font-medium text-zinc-500">Rain</div>
+                        <div className="text-xs font-bold text-sky-600 mt-0.5">14 mm</div>
                       </div>
-                      <div className="p-2.5 bg-white rounded-xl border border-[#E4E1D6]">
-                        <div className="text-[10px] text-neutral-400 font-medium">Wind</div>
-                        <div className="text-xs font-bold text-neutral-900 mt-0.5">18 km/h</div>
+                      <div className="p-2.5 rounded-xl border border-zinc-200 bg-white">
+                        <div className="text-[10px] font-medium text-zinc-500">Wind</div>
+                        <div className="text-xs font-bold mt-0.5 text-zinc-950">18 km/h</div>
                       </div>
                     </div>
-                    <div className="p-2.5 bg-blue-50/80 border border-blue-200 rounded-xl text-[11px] text-blue-900 leading-snug">
+                    <div className="p-2.5 rounded-xl text-[11px] leading-snug border bg-sky-50 border-sky-200 text-sky-900">
                       <span className="font-semibold">Weather Alert:</span> Active precipitation amplifies road pothole severity score by +1.2.
                     </div>
                   </div>
@@ -384,17 +379,17 @@ export function PlatformFeatures({ onExploreFeatures }: PlatformFeaturesProps) {
 
                 {selectedFeature.id === 'authority' && (
                   <div className="space-y-2.5">
-                    <div className="p-3 bg-neutral-950 text-white rounded-xl space-y-1.5 font-mono text-[11px]">
-                      <div className="text-neutral-400 text-[10px]">
+                    <div className="p-3 bg-zinc-950 border border-zinc-900 text-white rounded-xl space-y-1.5 font-mono text-[11px]">
+                      <div className="text-zinc-500 text-[10px]">
                         // Cryptographic Authentication
                       </div>
                       <div className="text-amber-400">Role: MUNICIPAL_ADMIN</div>
-                      <div className="text-neutral-300">Sign: HMAC-SHA256 Token</div>
+                      <div className="text-zinc-400">Sign: HMAC-SHA256 Token</div>
                       <div className="text-emerald-400">Access: Dispatch + Resolve Authorized</div>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-neutral-600 bg-white p-2.5 rounded-xl border border-[#E4E1D6]">
+                    <div className="flex items-center justify-between text-xs p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-700">
                       <span>Resolution Status:</span>
-                      <span className="text-emerald-700 font-bold">✓ SLA Verified &amp; Cleared</span>
+                      <span className="text-emerald-600 font-bold">✓ SLA Verified &amp; Cleared</span>
                     </div>
                   </div>
                 )}
@@ -406,4 +401,3 @@ export function PlatformFeatures({ onExploreFeatures }: PlatformFeaturesProps) {
     </section>
   );
 }
-
