@@ -113,20 +113,6 @@ export function InteractiveTriagePreview({
 }: InteractiveTriagePreviewProps) {
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>('pothole');
 
-  React.useEffect(() => {
-    const handleScenarioSelect = (e: Event) => {
-      const customEvent = e as CustomEvent<{ scenarioId: string }>;
-      if (customEvent.detail?.scenarioId) {
-        setSelectedScenarioId(customEvent.detail.scenarioId);
-      }
-    };
-
-    window.addEventListener('civic_select_scenario', handleScenarioSelect);
-    return () => {
-      window.removeEventListener('civic_select_scenario', handleScenarioSelect);
-    };
-  }, []);
-
   const activeScenario =
     SCENARIOS.find((s) => s.id === selectedScenarioId) || SCENARIOS[0];
 
