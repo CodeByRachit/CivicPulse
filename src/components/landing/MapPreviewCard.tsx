@@ -6,3 +6,4 @@ import React from 'react';
 export function MapPreviewCard() {
   return null;
 }
+

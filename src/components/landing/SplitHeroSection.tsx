@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import dynamic from "next/dynamic";
-import { UploadCloud, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { TiltCard3D } from "./TiltCard3D";
 import type { CityDefect } from "./CityInfrastructure3D";
 import { CITY_DEFECTS } from "./CityInfrastructure3D";
@@ -13,7 +13,7 @@ const CityInfrastructure3D = dynamic(() => import("./CityInfrastructure3D"), {
   loading: () => (
     <div className="w-full h-full flex flex-col items-center justify-center bg-[#0B132B] text-neutral-400 text-xs font-mono gap-3 min-h-[460px] rounded-3xl">
       <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
-      <span>Rendering 3D Isometric Urban Digital Twin...</span>
+      <span>Rendering 3D Isometric Urban Grid...</span>
     </div>
   ),
 });
@@ -23,195 +23,81 @@ interface SplitHeroSectionProps {
   onExploreMap: () => void;
 }
 
-export const PRELOADED_SAMPLES = [
-  {
-    id: "sample-pothole",
-    emoji: "🛣️",
-    title: "1. Arterial Pothole Cluster",
-    meta: "6-Hour PWD SLA",
-    defectId: "defect-road",
-    simulatorId: "pothole",
-  },
-  {
-    id: "sample-cable",
-    emoji: "⚡",
-    title: "2. Exposed 440V Cable",
-    meta: "High Voltage Hazard Shield",
-    defectId: "defect-power",
-    simulatorId: "electrical",
-  },
-  {
-    id: "sample-flood",
-    emoji: "🌊",
-    title: "3. Stormwater Culvert Flooding",
-    meta: "20m Spatial Cluster",
-    defectId: "defect-water",
-    simulatorId: "drainage",
-  },
-  {
-    id: "sample-dump",
-    emoji: "☣️",
-    title: "4. Hazardous Waste Dumping",
-    meta: "Contractor Work Order Draft",
-    defectId: "defect-road",
-    simulatorId: "sanitation",
-  },
-];
-
 export function SplitHeroSection({
   onReportIssue,
   onExploreMap,
 }: SplitHeroSectionProps) {
   const [selectedDefect, setSelectedDefect] = useState<CityDefect>(CITY_DEFECTS[0]);
-  const [isDragging, setIsDragging] = useState(false);
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    onReportIssue();
-  };
-
-  const handleSelectSample = (sample: typeof PRELOADED_SAMPLES[0]) => {
-    // Select defect in 3D City Twin
-    const matched = CITY_DEFECTS.find((d) => d.id === sample.defectId);
-    if (matched) {
-      setSelectedDefect(matched);
-    }
-    // Also notify simulator if user scrolls down
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("civic_select_scenario", {
-          detail: { scenarioId: sample.simulatorId },
-        })
-      );
-    }
-  };
 
   return (
-    <section className="w-full max-w-7xl mx-auto px-6 sm:px-8 pt-4 pb-12">
-      {/* 2-Column Split Layout matching Reference Layout */}
+    <section className="w-full max-w-7xl mx-auto px-6 sm:px-8 pt-6 pb-12">
+      {/* 2-Column Split Layout: Text on Left, 3D City on Right */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
-        {/* Left Column: Headlines, Action Button & Quick-Launch Samples */}
+        {/* Left Column: Authentic Brand Headline, Subtitle & Action Buttons */}
         <div className="lg:col-span-6 flex flex-col items-start text-left z-10 py-2">
-          {/* Top Pill Tagline Badge */}
+          {/* Platform Pill Badge */}
           <div className="inline-flex items-center gap-2 rounded-full border border-[#DFDACD] bg-[#EAE6DC] px-3.5 py-1 text-[11px] font-semibold tracking-wider text-neutral-700 shadow-2xs">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>AUTONOMOUS MUNICIPAL TRIAGE • CIVIC-2026</span>
+            <span>THE OPEN CIVIC TRIAGE PLATFORM</span>
           </div>
 
-          {/* High-Impact Display Headline */}
-          <h1 className="mt-5 text-4xl sm:text-5xl lg:text-[54px] font-extrabold tracking-tight text-[#1C1A16] leading-[1.06]">
-            Your Autonomous <br />
-            City Triage Engine. <br />
-            <span className="text-[#1C1A16]">100% In Real-Time.</span>
+          {/* Two-Tone Display Headline */}
+          <h1 className="mt-5 text-4xl sm:text-5xl lg:text-[56px] font-bold tracking-tight leading-[1.12]">
+            <span className="block text-neutral-950">Smarter cities.</span>
+            <span className="block mt-1 bg-gradient-to-r from-emerald-600 via-teal-600 to-neutral-900 bg-clip-text text-transparent">
+              Transparent solutions.
+            </span>
           </h1>
 
-          {/* Subtitle Description */}
-          <p className="mt-4 max-w-xl text-sm sm:text-base text-neutral-600 leading-relaxed font-normal">
-            Report municipal infrastructure defects with photo or voice evidence.
-            Zero bureaucracy—instant AI diagnosis, automated contractor work order
-            routing, and real-time SLA verification.
+          {/* Subheadline Description */}
+          <p className="mt-4 max-w-xl text-xs sm:text-sm md:text-base text-neutral-600 leading-relaxed font-normal">
+            Submit photos or voice reports of local issues like potholes, leaks, and
+            damage. Watch them get auto-routed, AI-triaged, and resolved in real-time.
           </p>
 
-          {/* Primary Action Button: Elevated Pill with Drag & Drop */}
-          <div className="mt-7 w-full max-w-md">
-            <div
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
+          {/* Feature Cues Micro-Pills */}
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <span className="px-3 py-1 rounded-full bg-white/80 border border-[#E4E1D6] text-[11px] font-medium text-neutral-700 shadow-2xs">
+              🏙️ 3D Digital Twin &amp; Lidar
+            </span>
+            <span className="px-3 py-1 rounded-full bg-white/80 border border-[#E4E1D6] text-[11px] font-medium text-neutral-700 shadow-2xs">
+              🎙️ Voice &amp; Photo Triage
+            </span>
+            <span className="px-3 py-1 rounded-full bg-white/80 border border-[#E4E1D6] text-[11px] font-medium text-neutral-700 shadow-2xs">
+              ⚡ 20m Spatial Clustering
+            </span>
+          </div>
+
+          {/* Dual Call-To-Action Buttons */}
+          <div className="mt-7 flex flex-wrap items-center gap-3.5">
+            <button
+              type="button"
               onClick={onReportIssue}
-              className={`group relative flex items-center justify-between p-2 pl-3 pr-4 rounded-full bg-white border cursor-pointer transition-all duration-200 ${
-                isDragging
-                  ? "border-emerald-500 bg-emerald-50/50 ring-4 ring-emerald-500/10 scale-[1.02]"
-                  : "border-[#DFDACD] hover:border-neutral-400 shadow-[0_12px_36px_rgba(40,35,25,0.08)] hover:shadow-[0_18px_44px_rgba(40,35,25,0.12)] active:scale-[0.99]"
-              }`}
+              className="inline-flex items-center gap-2 rounded-full bg-neutral-950 hover:bg-neutral-800 px-6 py-3 text-xs sm:text-sm font-semibold text-white shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-95"
             >
-              <div className="flex items-center gap-3">
-                {/* Dark Circle Upload Icon Badge matching Reference Image */}
-                <div className="w-10 h-10 rounded-full bg-[#1C1A16] text-white flex items-center justify-center transition-transform group-hover:scale-105 shrink-0">
-                  <UploadCloud className="w-4 h-4 text-white" />
-                </div>
-                <div className="flex flex-col text-left">
-                  <span className="text-sm font-bold text-neutral-900 group-hover:text-emerald-700 transition-colors">
-                    ↑ Report Civic Grievance
-                  </span>
-                  <span className="text-[11px] text-neutral-500">
-                    Click to launch or drop evidence file
-                  </span>
-                </div>
-              </div>
-
-              {/* Supported File Types Pill Badge */}
-              <span className="text-[11px] font-mono font-medium text-neutral-600 bg-[#F4F2EA] border border-[#E4E1D6] px-2.5 py-1 rounded-full shrink-0">
-                .JPG, .PNG or Voice
-              </span>
-            </div>
-
-            {/* Cryptographic Trust Indicator */}
-            <div className="mt-3 flex items-center gap-2 pl-3 text-[11px] font-medium text-neutral-500">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Cryptographic Citizen Vault (AES-256) • No login required to submit</span>
-            </div>
+              <span>Report an Issue (Free)</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            </button>
+            <button
+              type="button"
+              onClick={onExploreMap}
+              className="inline-flex items-center gap-2 rounded-full border border-[#E4E1D6] bg-white hover:bg-[#F8F6F0] px-5 py-3 text-xs sm:text-sm font-medium text-neutral-800 shadow-xs transition-all cursor-pointer active:scale-95"
+            >
+              <span>Explore Active Map</span>
+              <ArrowRight className="w-3.5 h-3.5 text-neutral-600" />
+            </button>
           </div>
 
-          {/* Quick-Launch Pre-Loaded Samples Section */}
-          <div className="mt-9 w-full max-w-xl">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[11px] font-bold text-neutral-500 tracking-wider uppercase">
-                Or instantly launch a pre-loaded sample:
-              </p>
-              <button
-                type="button"
-                onClick={onExploreMap}
-                className="text-[11px] font-semibold text-neutral-600 hover:text-emerald-700 transition flex items-center gap-1 cursor-pointer"
-              >
-                <span>Live Map View</span>
-                <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
-
-            {/* 2x2 Grid of Preloaded Scenarios */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {PRELOADED_SAMPLES.map((sample) => (
-                <button
-                  key={sample.id}
-                  type="button"
-                  onClick={() => handleSelectSample(sample)}
-                  className="group flex items-center justify-between p-3 rounded-xl bg-white border border-[#E4E1D6] hover:border-neutral-400 hover:shadow-xs transition-all duration-150 text-left cursor-pointer active:scale-[0.98]"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-[#F4F2EA] border border-[#E4E1D6] flex items-center justify-center text-sm shrink-0">
-                      {sample.emoji}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs font-bold text-neutral-900 group-hover:text-emerald-700 transition-colors truncate">
-                        {sample.title}
-                      </div>
-                      <div className="text-[10px] text-neutral-500 truncate">
-                        {sample.meta}
-                      </div>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-3.5 h-3.5 text-neutral-400 group-hover:text-neutral-900 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Micro-copy */}
+          <p className="mt-3.5 text-xs text-neutral-500 font-medium">
+            No login required to submit.
+          </p>
         </div>
 
         {/* Right Column: 3D Urban Twin / City Infrastructure (Not in Book / Frameless) */}
-        <div className="lg:col-span-6 relative w-full h-[520px] sm:h-[580px] lg:h-[620px] flex items-center justify-center">
+        <div className="lg:col-span-6 relative w-full h-[480px] sm:h-[540px] lg:h-[580px] flex items-center justify-center">
           {/* Frameless High-End 3D Viewport Container */}
-          <div className="w-full h-full rounded-3xl overflow-hidden bg-[#0B132B] border border-neutral-800 shadow-[0_24px_60px_rgba(11,19,43,0.25)] relative">
+          <div className="w-full h-full rounded-3xl overflow-hidden bg-[#0B132B] border border-neutral-800 shadow-[0_24px_60px_rgba(11,19,43,0.22)] relative">
             {/* Interactive 3D Canvas */}
             <CityInfrastructure3D
               activeDefectId={selectedDefect.id}
