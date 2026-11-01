@@ -62,3 +62,4 @@ If you prefer to configure the Web Service manually:
 - **Network Interface Binding**: `HOSTNAME=0.0.0.0` and `next start -H 0.0.0.0 -p ${PORT:-3000}` ensures Render's port detection never times out.
 - **Dedicated Health Endpoint**: `GET /api/health` responds instantly with `{ status: "healthy" }` so Render zero-downtime health probes pass immediately.
 - **DNS Dual-Stack Fix**: Built-in IPv4 precedence (`dns.setDefaultResultOrder('ipv4first')`) protects Supabase, Gemini, and Brevo API calls from IPv6 DNS timeouts in cloud Linux containers.
+

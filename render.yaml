@@ -27,3 +27,4 @@ services:
         value: admin@civicpulse.gov.in
       - key: ADMIN_PASSWORD
         value: ADMIN-2026
+
