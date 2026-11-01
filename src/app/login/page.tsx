@@ -103,8 +103,8 @@ export default function LoginPage() {
         return;
       }
 
-      setDemoOtp(data.demoOtp || '123456');
-      setSuccessNotice(`Verification code dispatched to ${cleanEmail}.`);
+      setDemoOtp(data.demoOtp || null);
+      setSuccessNotice(data.message || `Verification code dispatched to ${cleanEmail}.`);
       setCitizenStep(2);
       setLoading(false);
     } catch (err) {
@@ -185,8 +185,8 @@ export default function LoginPage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        setDemoOtp(data.demoOtp || '123456');
-        setSuccessNotice(`New code sent to ${email.trim()}.`);
+        setDemoOtp(data.demoOtp || null);
+        setSuccessNotice(data.message || `New verification code dispatched to ${email.trim()}.`);
       } else {
         setError(data.error || 'Could not resend code. Please try again.');
       }
@@ -420,13 +420,20 @@ export default function LoginPage() {
                       <label className="text-xs font-semibold text-neutral-800">
                         6-Digit Verification Code
                       </label>
-                      <button
-                        type="button"
-                        onClick={handleQuickFillOtp}
-                        className="text-[11px] text-neutral-600 hover:text-neutral-900 font-medium underline decoration-neutral-300 hover:decoration-neutral-900 cursor-pointer"
-                      >
-                        Fill Demo (123456)
-                      </button>
+                      {demoOtp ? (
+                        <button
+                          type="button"
+                          onClick={handleQuickFillOtp}
+                          className="text-[11px] text-amber-700 hover:text-amber-900 font-medium underline decoration-amber-300 hover:decoration-amber-900 cursor-pointer"
+                        >
+                          Fill Demo ({demoOtp})
+                        </button>
+                      ) : (
+                        <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span>Delivered to inbox</span>
+                        </span>
+                      )}
                     </div>
 
                     <div className="relative">

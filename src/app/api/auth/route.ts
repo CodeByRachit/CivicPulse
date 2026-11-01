@@ -7,6 +7,7 @@ import {
   withSecurityHeaders,
   type UserRole,
 } from '@/lib/security';
+import { sendOtpEmail } from '@/lib/brevo';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -159,7 +160,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   // -------------------------------------------------------------
-  // BRANCH 2: Citizen Step 1 (Send OTP)
+  // BRANCH 2: Citizen Step 1 (Send OTP via Brevo Transactional Email)
   // -------------------------------------------------------------
   if (action === 'SEND_OTP') {
     cleanExpiredOtps();
@@ -175,7 +176,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Generate 6-digit numeric OTP
+    // Generate cryptographically random 6-digit numeric OTP
     const generatedOtp = crypto.randomInt(100000, 999999).toString();
     otpStore.set(email, {
       otp: generatedOtp,
@@ -183,16 +184,39 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       name,
     });
 
-    return withSecurityHeaders(
-      NextResponse.json(
-        {
-          success: true,
-          message: `Verification code dispatched to ${email}.`,
-          demoOtp: '123456',
-        },
-        { status: 200 }
-      )
-    );
+    // Send transactional email via Brevo
+    const emailResult = await sendOtpEmail({
+      toEmail: email,
+      otp: generatedOtp,
+      recipientName: name,
+    });
+
+    if (emailResult.success) {
+      console.log(`[Brevo] OTP dispatched successfully to ${email} (messageId: ${emailResult.messageId})`);
+      return withSecurityHeaders(
+        NextResponse.json(
+          {
+            success: true,
+            message: `Verification code sent to ${email}. Please check your inbox.`,
+            emailSent: true,
+          },
+          { status: 200 }
+        )
+      );
+    } else {
+      console.warn(`[Brevo] Failed to send email to ${email}:`, emailResult.error);
+      return withSecurityHeaders(
+        NextResponse.json(
+          {
+            success: true,
+            message: `Could not send email (${emailResult.error || 'delivery error'}). Demo fallback active.`,
+            demoOtp: '123456',
+            emailSent: false,
+          },
+          { status: 200 }
+        )
+      );
+    }
   }
 
   // -------------------------------------------------------------
